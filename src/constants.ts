@@ -2,9 +2,9 @@ export const TRAIN_CLASS_LIST = ["G", "D", "C", "K", "Z", "T", "S", "Y"];
 
 export const PAGE_SIZE = 200;
 
-/** 安全请求：每次请求前随机休眠范围 [min, max] ms，可调低以提速、调高以避检测 */
-export const SAFE_REQUEST_DELAY_MIN = 2000;
-export const SAFE_REQUEST_DELAY_MAX = 5000;
+/** 安全请求：每次请求前随机休眠范围 [min, max] ms */
+export const SAFE_REQUEST_DELAY_MIN = 2500;
+export const SAFE_REQUEST_DELAY_MAX = 5500;
 
 /** 单次请求内换代理重试时的休眠范围 [min, max] ms */
 export const REQUEST_RETRY_DELAY_MIN = 300;

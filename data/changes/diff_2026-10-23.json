@@ -2,28 +2,22 @@
   "run_date": "2026-10-23",
   "query_date": "20261023",
   "trains": {
-    "total": 20,
+    "total": 14,
     "added": [
-      "C901",
-      "C902",
-      "C903",
-      "C904",
-      "C905",
-      "C906",
-      "C913",
-      "C914",
-      "C915",
-      "C916",
-      "C921",
-      "C924",
-      "C922",
-      "C923",
-      "C925",
-      "C926",
-      "C931",
-      "C932",
-      "C933",
-      "C934"
+      "C20",
+      "C200",
+      "C201",
+      "C202",
+      "C203",
+      "C204",
+      "C205",
+      "C206",
+      "C2001",
+      "C2002",
+      "C2003",
+      "C2004",
+      "C2005",
+      "C2006"
     ],
     "removed": [],
     "changed": []
@@ -3433,8 +3427,8 @@
     "removed": []
   },
   "mileage": {
-    "segments_added": 26,
-    "segments_missing_coords": 14
+    "segments_added": 28,
+    "segments_missing_coords": 6
   },
   "failed_train_nos": []
 }

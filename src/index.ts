@@ -108,36 +108,26 @@ const processPrefix = async (prefix: string): Promise<void> => {
   const exact = list.find((t) => t.station_train_code === prefix);
   if (exact) trainList.add(exact);
 
-  const subTasks: Promise<void>[] = [];
+  // 递归拆分子前缀，串行执行避免瞬时高并发被 403
   for (let j = 0; j <= 9; j++) {
-    subTasks.push(processPrefix(`${prefix}${j}`));
+    await processPrefix(`${prefix}${j}`);
   }
-  await Promise.all(subTasks);
 };
 
+/** 串行枚举一类车次的所有前缀，类与类之间也串行，避免瞬时高并发触发 403 */
 const fetchTrainList = async () => {
   const t0 = Date.now();
-  if (TEST_PREFIX) {
-    await processPrefix(TEST_PREFIX);
-  } else {
-    const classes = TRAIN_CLASS_LIST;
-    for (const cls of classes) {
-      for (let i = 1; i <= 9; i++) {
-        await processPrefix(`${cls}${i}`);
-      }
+  const classes = TEST_PREFIX ? [TEST_PREFIX.charAt(0)] : TRAIN_CLASS_LIST;
+  for (const cls of classes) {
+    for (let i = 1; i <= 9; i++) {
+      await processPrefix(`${cls}${i}`);
     }
   }
-  // 列表失败重试
+  // 列表失败重试（用失败队列重跑，已有 safeRequest 内部重试 + 这里兜底）
   for (let round = 0; round < 5 && getFailedQueueLength() > 0; round++) {
     console.log(`[列表重试] 第 ${round + 1} 轮, ${getFailedQueueLength()} 个失败请求`);
-    // 重试队列按 URL 执行，这里重新枚举失败前缀
-    const failedPrefixes = getPermanentlyFailedUrls()
-      .map((u) => u.match(/keyword=([^&]+)&date=/)?.[1])
-      .filter(Boolean) as string[];
-    if (failedPrefixes.length === 0) break;
+    await new Promise((r) => setTimeout(r, 15000 + round * 30000)); // 类间更长退避
     await retryFailedRequests();
-    // retryFailedRequests 处理失败队列；仍有失败由详情阶段统计兜底
-    break;
   }
   console.log(
     `[列表] 枚举完成: ${trainList.size} 个车次, ${listRequestCount} 次请求, 耗时 ${((Date.now() - t0) / 1000).toFixed(1)}s`,
@@ -155,7 +145,7 @@ interface DetailResult {
 }
 
 const fetchTrainDetails = async (): Promise<{ details: DetailResult[]; failedTrainNos: string[] }> => {
-  const scheduler = new TaskScheduler(6, 2);
+  const scheduler = new TaskScheduler(5, 2);
   const targets = [...trainList];
   const limited = TEST_LIMIT > 0 ? targets.slice(0, TEST_LIMIT) : targets;
   const t0 = Date.now();
@@ -178,10 +168,18 @@ const fetchTrainDetails = async (): Promise<{ details: DetailResult[]; failedTra
     };
   };
 
-  // 主轮
-  const results = await Promise.all(limited.map(fetchOne));
-  let details = results.filter((r): r is DetailResult => !("failed" in r));
-  let failed = results.filter((r): r is { train_no: string; failed: true } => "failed" in r);
+  // 滚动批次处理：避免一次性 Promise.all 创建上万 Promise
+  const BATCH = 200;
+  let details: DetailResult[] = [];
+  let failed: { train_no: string; failed: true }[] = [];
+  for (let i = 0; i < limited.length; i += BATCH) {
+    const batch = limited.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(fetchOne));
+    details = details.concat(results.filter((r): r is DetailResult => !("failed" in r)));
+    failed = failed.concat(results.filter((r): r is { train_no: string; failed: true } => "failed" in r));
+    const done = Math.min(i + BATCH, limited.length);
+    console.log(`[详情] 进度 ${done}/${limited.length}，成功 ${details.length}，失败 ${failed.length}`);
+  }
 
   // 重试轮（最多 5 轮）
   for (let round = 0; round < 5 && failed.length > 0; round++) {
