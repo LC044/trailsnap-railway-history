@@ -16,8 +16,8 @@ import crypto from "crypto";
  * snapshot/（不进 git）             # 原始全量快照，上传 Release 供下载
  */
 
-export const DATA_DIR = path.join(process.cwd(), "data");
-export const SNAPSHOT_DIR = path.join(process.cwd(), "snapshot");
+export const DATA_DIR = path.resolve(process.env.DATA_DIR || "data");
+export const SNAPSHOT_DIR = path.resolve(process.env.SNAPSHOT_DIR || "snapshot");
 
 export const ensureDirs = () => {
   for (const dir of [
@@ -33,15 +33,13 @@ export const ensureDirs = () => {
 };
 
 const readJson = <T>(filePath: string, fallback: T): T => {
-  try {
-    return JSON.parse(fs.readFileSync(filePath, "utf-8")) as T;
-  } catch {
-    return fallback;
-  }
+  if (!fs.existsSync(filePath)) return fallback;
+  return JSON.parse(fs.readFileSync(filePath, "utf-8")) as T;
 };
 
 const writeJson = (filePath: string, data: unknown) => {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+  fs.writeFileSync(filePath + ".tmp", JSON.stringify(data, null, 2), "utf-8");
+  fs.renameSync(filePath + ".tmp", filePath);
 };
 
 // ------------------------------ 车站历史 ------------------------------
@@ -56,6 +54,8 @@ export interface StationNameEpoch {
 }
 
 export interface StationRecord {
+  status_history?: { date: string; status: "active" | "inactive" }[];
+  versions?: { first: string; last: string; data: Record<string, unknown> }[];
   telecode: string;
   names: StationNameEpoch[];
   pinyin: string;
@@ -78,6 +78,7 @@ export const saveStationHistory = (history: StationHistory) =>
   writeJson(path.join(DATA_DIR, "stations", "station_history.json"), history);
 
 export interface StationSnapshotItem {
+  [key: string]: unknown;
   name: string;
   tele_code: string;
   pinyin: string;
@@ -93,6 +94,7 @@ export const updateStationHistory = (
   history: StationHistory,
   stations: StationSnapshotItem[],
   runDate: string,
+  complete = true,
 ): { added: string[]; renamed: { telecode: string; from: string; to: string }[]; removed: string[] } => {
   const currentTelecodes = new Set<string>();
   const added: string[] = [];
@@ -113,10 +115,17 @@ export const updateStationHistory = (
         first_seen: runDate,
         last_seen: runDate,
       };
+      history[s.tele_code].versions = [{ first: runDate, last: runDate, data: { ...s } }];
+      history[s.tele_code].status_history = [{ date: runDate, status: "active" }];
       added.push(s.name);
       continue;
     }
+    if (rec.status !== "active") (rec.status_history ??= []).push({date: runDate, status: "active"});
     rec.status = "active";
+    const versions = rec.versions ??= [];
+    const prior = versions.at(-1);
+    if (prior && JSON.stringify(prior.data) === JSON.stringify(s)) prior.last = runDate;
+    else versions.push({ first: runDate, last: runDate, data: { ...s } });
     rec.last_seen = runDate;
     rec.pinyin = s.pinyin || rec.pinyin;
     rec.pinyin_short = s.pinyin_short || rec.pinyin_short;
@@ -132,8 +141,9 @@ export const updateStationHistory = (
 
   const removed: string[] = [];
   for (const rec of Object.values(history)) {
-    if (!currentTelecodes.has(rec.telecode) && rec.status === "active") {
+    if (complete && !currentTelecodes.has(rec.telecode) && rec.status === "active") {
       rec.status = "inactive";
+      (rec.status_history ??= []).push({date: runDate, status: "inactive"});
       removed.push(rec.names[rec.names.length - 1].name);
     }
   }
@@ -187,6 +197,9 @@ export interface StopRecord {
 }
 
 export interface TrainVersion {
+  dates?: string[];
+  observed_at?: string;
+  raw?: unknown;
   /** 12306 内部车号 */
   no: string;
   /** 始发站名 */
@@ -211,7 +224,7 @@ export interface TrainHistoryEntry {
 export const versionHash = (no: string, f: string, t: string, stops: StopRecord[]): string =>
   crypto
     .createHash("sha1")
-    .update(`${no}|${f}|${t}|${stops.map((s) => `${s.c},${s.a},${s.d},${s.dd}`).join(";")}`)
+    .update(JSON.stringify({ no, f, t, stops }))
     .digest("hex")
     .slice(0, 16);
 
@@ -225,12 +238,8 @@ export const loadClassHistory = (cls: string): Map<string, TrainHistoryEntry> =>
   for (const line of fs.readFileSync(file, "utf-8").split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    try {
-      const entry = JSON.parse(trimmed) as TrainHistoryEntry;
-      map.set(entry.code, entry);
-    } catch {
-      // 忽略损坏行
-    }
+    const entry = JSON.parse(trimmed) as TrainHistoryEntry;
+    map.set(entry.code, entry);
   }
   return map;
 };

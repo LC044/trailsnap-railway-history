@@ -1,105 +1,45 @@
-# 国铁车次历史数据采集
+# 12306 铁路历史数据
 
-从 12306 采集全国车次时刻表，按**版本化历史**存储——随着铁路运行图调整而更新，保留每次变更记录，可查询某个车次的**历史运行情况**。
+按运行日期采集车站、车次及停靠时刻，保留从首次采集开始的全部观测历史，供 TrailSnap 离线查询。当前完整性以 data/feed/manifest.json 的 coverage 和 metadata 为准；样本或部分成功不代表全国完整时刻表。
 
-## 特性
+## 运行
 
-- **前缀递归枚举**：8 类车次（G/D/C/K/Z/T/S/Y）无遗漏，单次返回满 200 条自动拆分子前缀
-- **版本化历史**：每个车次码的每次时刻表变更都记录为一个版本（内容指纹去重，未变化仅延长日期）
-- **车站变迁**：追踪车站新增、改名（同电报码不同名）、停用；可查询历史车站名
-- **自建里程表**：基于车站 GPS 坐标离线估算站间里程，不依赖第三方网站
-- **增量提交**：每次运行只追加变化数据到 git，快照上传 Release
-
-## 数据布局
-
-```
-data/
-  stations/station_history.json   车站档案：电报码 -> 名称变迁 epochs + 状态
-  mileage/segments.json            站间里程缓存："teleA|teleB" -> km
-  trains/history_G.jsonl          每行一个车次码的全部运行版本
-  trains/history_D.jsonl
-  ...
-  changes/diff_YYYY-MM-DD.json    变更报告
-  last_run.json                    上次运行元信息
-  summary.json                      本次运行统计
-assets/
-  station_gps.json                 12306 车站 GPS 坐标种子数据
+```powershell
+npm ci
+npm test
+npm run dev
 ```
 
-## 数据结构详解
+正式 GitHub Action 每天北京时间 03:00 采集。新字段原始值随版本保留；历史 JSON 损坏会中止运行，不会当空库覆盖。车次以查询日期记录 dates（实际观测运行日），不是以采集日推断有效期。旧名称和不再出现在新车站表中的记录均保留。
 
-### station_history.json
+枚举包括 G/D/C/K/Z/T/S/Y/L/A 和纯数字入口，满 200 条会递归分拆；同一内部号的详情只查一次。请求失败在调用方重试并接收返回值。详情失败不推断停运，保留列表起终站；无时刻表的实体 s=[]。单日 checkpoint 在 snapshot/ 下，重新运行同一天可继续。
 
-键 = 电报码，值结构：
+## 数据文件与客户端协议
 
-```jsonc
-{
-  "telecode": "VAP",
-  "names": [
-    { "name": "北京北", "first": "2026-10-23", "last": "2026-10-23" }
-  ],
-  "pinyin": "beijingbei",
-  "city": "北京",
-  "status": "active",
-  "first_seen": "2026-10-23",
-  "last_seen": "2026-10-23"
-}
-```
+- data/stations/station_history.json：电报码为键，names 名称观测、versions 原字段/GPS 快照、status_history 状态观测。
+- data/trains/history_*.jsonl：车次与所有内容版本；每个版本 dates 为已观测日期，fd/ld 只是日期边界，不代表边界内每天都验证过。
+- data/feed/manifest.json：协议版本、单调序号、覆盖说明、全历史 snapshot 及全部 delta 描述。
+- data/feed/packs/<sha256>.json.gz：不可变压缩包，首次可下载全历史 snapshot，以后只下载游标后的 delta。
+- assets/station_gps.json：现有 12306 坐标种子；当前没有验证可自动刷新的官方 GPS 接口。原始坐标和版本嵌入车站历史，缺失时不猜测。
+- snapshot/：诊断快照和隔离试跑，不进 Git。Actions Artifact 有过期时间，不能作为历史唯一存储。
 
-车站改名时旧 name 的 epoch 封存（last 停在改名日），开新 epoch。
+每个包包含 schema_version、sequence、full、upserts（key=station:电报码 或 train:车次，value=历史实体）。manifest 描述包含 SHA-256 和压缩字节数。包只能增加和更新，不删除实体；变更实体携带其保留的全部历史。v1 增量按实体发送，并非最小观测事件；数据规模增大后可另设计 v2 分片，保留老包兼容已有客户端。
 
-### history_<CLASS>.jsonl
+Actions 先把包和清单一起推送，成功后创建独立 Release，附件提供全历史 snapshot。测试模式不推送或发布；失败时仅上传诊断 artifact。不要在正式 data/ 上试跑或与其他采集进程同时写入。
 
-每行一个车次码，结构：
+## 参数
 
-```jsonc
-{
-  "code": "G1",
-  "versions": [
-    {
-      "no": "24000000G10L",
-      "f": "北京南",
-      "t": "上海虹桥",
-      "fd": "2026-10-23",
-      "ld": "2026-10-23",
-      "h": "a1b2c3d4e5f60718",
-      "s": [
-        { "n": "北京南", "c": "VNP", "a": null, "d": "06:30", "dd": 0 },
-        { "n": "沧州西", "c": "CBP", "a": "07:18", "d": "07:20", "dd": 0 }
-      ]
-    }
-  ]
-}
-```
+- QUERY_DATE_OFFSET：查询日期偏移，默认 0。
+- DATA_DIR / SNAPSHOT_DIR：历史及快照目录，可用绝对路径。
+- TEST_PREFIX：完整前缀，如 G101、1461；TEST_LIMIT：详情上限。
+- 测试模式必须显式指定隔离 DATA_DIR。
+- REPLAY_SNAPSHOT_DIR：重放已有 stations_日期.json、train_list_日期.json、train_detail_日期.json。
+- REPLAY_DATE：输入文件日期；REPLAY_QUERY_DATE：显式运行日期，详情无法关联列表时必须提供，禁止误将旧数据标成今天。
 
-调图后时刻表变化 → 开新版本，旧版本封存。
+TrailSnap 中 railway/history_cache.py 实现 SHA-256 校验、SQLite 事务与游标增量导入；railway/history_cli.py 可用于本地导入。默认每天从本仓库 main 分支 data/feed/ 同步，首次同步前仍使用静态种子。历史查询精确命中观测日，否则使用最近完整时刻表；未知或仅列表车次只使用起终站，其余信息可为空。
 
-### segments.json
+里程为相邻停靠站 GPS Haversine 距离 × 1.2 的累加，是估算值，缺坐标时为空。坐标系尚未经官方确认，不代表实际线路或计费里程。原 src/history/mileage.ts 的站段缓存保留供兼容；新查询按站点坐标版本即时计算，不依赖可能过期的缓存。
 
-键 `"teleA|teleB"`，值 `{ km, first, last, source }`。地理属性，不随调图变。
+## 首版结果
 
-## 运行方式
-
-GitHub Actions 自动运行（每周一北京时间 03:00），也支持手动触发。
-
-本地运行：
-
-```bash
-npm install
-npx tsx src/index.ts
-```
-
-可选环境变量：
-- `QUERY_DATE_OFFSET`：查询日期偏移天数（0=今天）
-- `TEST_PREFIX`：仅枚举指定前缀（测试用）
-- `TEST_LIMIT`：仅抓前 N 个车次详情（测试用，0=不限）
-
-## 来源
-
-- 车次/时刻表：12306 公开搜索接口
-- 车站表/GPS：12306 官方页面内嵌的 station_name js 及 App 车站列表接口
-- 里程：GPS 直线距离 × 1.2 铁路曲折系数
-
-## 免责声明
-
-仅供学习交流。数据来自公开接口，使用者须遵守 12306 使用条款及相关法律法规。
+详见 FIRST-EDITION.md；首版包在本地 snapshot/initial-v1/，尚未远端发布。完整时刻表覆盖仍有限，不能依据列表条数声称采集完整。

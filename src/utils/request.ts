@@ -367,8 +367,6 @@ export class ProxyPoolManager {
       clearTimeout(timeoutId);
       throw err;
     }
-    clearTimeout(timeoutId);
-
     let result: API.IResponse<T>;
     try {
       if (!rsp.ok) {
@@ -381,7 +379,7 @@ export class ProxyPoolManager {
         const data = await rsp.json();
         result = {
           code: rsp.status,
-          success: true,
+          success: data?.status !== false && data?.success !== false,
           data: data?.data as T,
           message: data?.message || rsp.statusText,
         } as API.IResponse<T>;
@@ -396,6 +394,7 @@ export class ProxyPoolManager {
       } as API.IResponse<T>;
      }
 
+     clearTimeout(timeoutId);
      return result;
    }
 

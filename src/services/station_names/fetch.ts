@@ -10,6 +10,7 @@ export const getStationNames = async (): Promise<IStationInfo[]> => {
 
   // 1. 拉首页 HTML，找 station_name js 文件
   const htmlRsp = await fetch("https://www.12306.cn/index/", {
+    signal: AbortSignal.timeout(30000),
     headers: { "User-Agent": UA },
   });
   if (!htmlRsp.ok) throw new Error(`首页请求失败 HTTP ${htmlRsp.status}`);
@@ -24,8 +25,8 @@ export const getStationNames = async (): Promise<IStationInfo[]> => {
   // 2. 拉车站 JS 内容
   const jsUrl = stationJs.startsWith("http")
     ? stationJs
-    : `https://www.12306.cn/index/${stationJs.replace("./", "")}`;
-  const jsRsp = await fetch(jsUrl, { headers: { "User-Agent": UA } });
+    : new URL(stationJs, "https://www.12306.cn/index/").href;
+  const jsRsp = await fetch(jsUrl, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(30000) });
   if (!jsRsp.ok) throw new Error(`车站js请求失败 HTTP ${jsRsp.status}`);
   const jsContent = await jsRsp.text();
 
@@ -37,6 +38,7 @@ export const getStationNames = async (): Promise<IStationInfo[]> => {
     const [at_pinyin, name, tele_code, pinyin, pinyin_short, idx, area_code, city] =
       d.split("|");
     return {
+      raw_fields: d.split("|"),
       at_pinyin,
       name,
       tele_code,

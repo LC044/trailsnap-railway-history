@@ -2,6 +2,7 @@
  * 车站信息
  */
 export interface IStationInfo {
+  raw_fields?: string[];
   /**
    * @+拼音
    */

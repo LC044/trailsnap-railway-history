@@ -1,89 +1,65 @@
-name: 采集车次历史数据
-
+name: Collect railway history
 on:
-  # 手动触发：可选指定测试前缀和详情上限
   workflow_dispatch:
     inputs:
       query_date_offset:
-        description: "查询日期偏移天数（0=今天，13=预售期边缘）"
-        required: false
-        default: "0"
+        description: Query date offset in days
+        default: '0'
       test_prefix:
-        description: "仅枚举指定前缀（测试用，留空=全量）"
-        required: false
-        default: ""
+        description: Test prefix (empty for production)
+        default: ''
       test_limit:
-        description: "仅抓取前N个车次详情（测试用，0=不限制）"
-        required: false
-        default: "0"
-
-  # 每周一北京时间 03:00 定时运行
+        description: Detail limit (0 for production)
+        default: '0'
   schedule:
-    - cron: "0 19 * * 0"  # UTC 19:00 周日 = 北京时间 03:00 周一
-
+    - cron: '0 19 * * *'
 permissions:
   contents: write
-
+concurrency:
+  group: railway-history-publisher
+  cancel-in-progress: false
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 330
     steps:
-      - name: 检出代码（含历史数据）
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: 安装 Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-
-      - name: 安装依赖
-        run: npm install --no-fund --no-audit
-
-      - name: 运行采集
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm test
+      - name: Collect with checkpointing
         env:
-          QUERY_DATE_OFFSET: ${{ github.event.inputs.query_date_offset || '0' }}
-          TEST_PREFIX: ${{ github.event.inputs.test_prefix || '' }}
-          TEST_LIMIT: ${{ github.event.inputs.test_limit || '0' }}
-        run: npx tsx src/index.ts
-
-      - name: 提交历史数据
+          QUERY_DATE_OFFSET: ${{ inputs.query_date_offset || '0' }}
+          TEST_PREFIX: ${{ inputs.test_prefix || '' }}
+          TEST_LIMIT: ${{ inputs.test_limit || '0' }}
+          DATA_DIR: ${{ (inputs.test_prefix != '' || (inputs.test_limit != '' && inputs.test_limit != '0')) && 'snapshot/test-data' || 'data' }}
+        run: npm run dev
+      - name: Commit immutable packs and manifest together
+        if: success() && inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/ assets/station_gps.json
-          if git diff --cached --quiet; then
-            echo "无数据变更，跳过提交"
-          else
-            git commit -m "data: ${RUN_DATE:-auto} 采集更新
-
-            $(cat data/summary.json)"
+          if ! git diff --cached --quiet; then
+            git commit -m "data: railway observation $(date -u +%FT%TZ)"
             git push
           fi
+          echo "FEED_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Create downloadable historical snapshot
+        if: success() && inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
+        run: |
+          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("data/feed/manifest.json")); fs.copyFileSync("data/feed/"+m.snapshot.file,"snapshot/railway-history.json.gz"); fs.copyFileSync("data/feed/manifest.json","snapshot/manifest.json")'
+          gh release create "data-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" snapshot/railway-history.json.gz snapshot/manifest.json --target "$FEED_COMMIT" --title "Railway history ${GITHUB_RUN_ID}" --notes 'Complete retained history. Collection coverage is reported in manifest.metadata; partial observations never imply cancellation.'
         env:
-          RUN_DATE: ${{ vars.RUN_DATE }}
-
-      - name: 上传快照到 Release
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: softprops/action-gh-release@v2
         with:
-          tag_name: data-${{ vars.RUN_DATE || 'auto' }}
-          name: 车次数据 ${{ vars.RUN_DATE || 'auto' }}
-          files: |
-            snapshot/stations_*.json
-            snapshot/train_list_*.json
-            snapshot/train_detail_*.json
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 上传快照 artifact（Release 失败时的兜底）
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: snapshot
+          name: railway-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
           path: snapshot/
           retention-days: 30

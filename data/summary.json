@@ -1,28 +1,28 @@
 {
   "run_date": "2026-10-23",
   "query_date": "20261023",
-  "duration_seconds": 375,
-  "test_mode": true,
-  "http_success": 94,
+  "duration_seconds": 16365,
+  "test_mode": false,
+  "http_success": 16097,
   "http_permanent_failed": 0,
   "trains": {
-    "enumerated": 3074,
-    "details_ok": 15,
+    "enumerated": 15756,
+    "details_ok": 15756,
     "details_failed": 0,
-    "codes_total": 14,
-    "codes_new": 14,
-    "codes_changed": 14
+    "codes_total": 15730,
+    "codes_new": 15716,
+    "codes_changed": 15716
   },
   "stations": {
     "total": 3398,
-    "added": 3398,
+    "added": 0,
     "renamed": 0,
     "removed": 0
   },
   "mileage": {
-    "segments_total": 28,
-    "segments_added": 28,
-    "segments_missing_coords": 6,
+    "segments_total": 12050,
+    "segments_added": 12022,
+    "segments_missing_coords": 3356,
     "gps_version": "1019a5c6d4343e88d092489a6a3d811a"
   }
 }
