@@ -148,3 +148,4 @@ snapshot/
 # 日志
 log_*.txt
 logs_*.txt
+snapshot_*.tar.gz
