@@ -144,3 +144,7 @@ __test__
 dist/
 dist-test/
 snapshot/
+
+# 日志
+log_*.txt
+logs_*.txt
