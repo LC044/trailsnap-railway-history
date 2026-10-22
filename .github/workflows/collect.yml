@@ -1,0 +1,89 @@
+name: 采集车次历史数据
+
+on:
+  # 手动触发：可选指定测试前缀和详情上限
+  workflow_dispatch:
+    inputs:
+      query_date_offset:
+        description: "查询日期偏移天数（0=今天，13=预售期边缘）"
+        required: false
+        default: "0"
+      test_prefix:
+        description: "仅枚举指定前缀（测试用，留空=全量）"
+        required: false
+        default: ""
+      test_limit:
+        description: "仅抓取前N个车次详情（测试用，0=不限制）"
+        required: false
+        default: "0"
+
+  # 每周一北京时间 03:00 定时运行
+  schedule:
+    - cron: "0 19 * * 0"  # UTC 19:00 周日 = 北京时间 03:00 周一
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: 检出代码（含历史数据）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 安装依赖
+        run: npm install --no-fund --no-audit
+
+      - name: 运行采集
+        env:
+          QUERY_DATE_OFFSET: ${{ github.event.inputs.query_date_offset || '0' }}
+          TEST_PREFIX: ${{ github.event.inputs.test_prefix || '' }}
+          TEST_LIMIT: ${{ github.event.inputs.test_limit || '0' }}
+        run: npx tsx src/index.ts
+
+      - name: 提交历史数据
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ assets/station_gps.json
+          if git diff --cached --quiet; then
+            echo "无数据变更，跳过提交"
+          else
+            git commit -m "data: ${RUN_DATE:-auto} 采集更新
+
+            $(cat data/summary.json)"
+            git push
+          fi
+        env:
+          RUN_DATE: ${{ vars.RUN_DATE }}
+
+      - name: 上传快照到 Release
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: data-${{ vars.RUN_DATE || 'auto' }}
+          name: 车次数据 ${{ vars.RUN_DATE || 'auto' }}
+          files: |
+            snapshot/stations_*.json
+            snapshot/train_list_*.json
+            snapshot/train_detail_*.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传快照 artifact（Release 失败时的兜底）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot
+          path: snapshot/
+          retention-days: 30
