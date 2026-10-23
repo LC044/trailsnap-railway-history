@@ -64,3 +64,18 @@ test('immutable feed supports bootstrap, no-op, changed entities and deletion pr
   store.saveStationHistory({});
   assert.throws(()=>publishFeed({}),/history deletion/);
 });
+
+test('official station formats retain fields and fall back when homepage is unavailable', async()=>{
+  const { parseStationNames, getStationNames } = await import('../services/station_names/fetch');
+  const one='aaa|站甲|AAA|a|a|0|001|城市|future';
+  const two='bbb|站乙|BBB|b|b|1|002|城市';
+  assert.equal(parseStationNames(`var station_names='@${one}@${two}';`).length,2);
+  assert.equal(parseStationNames(`var station_names='@${one}|||@${two}';`)[0].raw_fields?.[8],'future');
+  let calls=0;
+  const fetcher=(async(url:unknown)=>{
+    if(++calls===1) throw new Error('ETIMEDOUT');
+    assert.equal(url,'https://kyfw.12306.cn/otn/resources/js/framework/station_name.js');
+    return new Response(`var station_names='@${one}@${two}';`);
+  }) as typeof fetch;
+  assert.equal((await getStationNames(fetcher)).length,2);
+});
