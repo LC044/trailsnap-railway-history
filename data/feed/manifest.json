@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "sequence": 1,
+  "generated_at": "2026-10-23T05:48:28.261Z",
+  "metadata": {
+    "source": "retained-history",
+    "complete": false,
+    "note": "Packages built from existing retained observations; no new train queries or operating dates were added.",
+    "collection_summary": {
+      "run_date": "2026-10-23",
+      "query_date": "20261023",
+      "duration_seconds": 16365,
+      "test_mode": false,
+      "http_success": 16097,
+      "http_permanent_failed": 0,
+      "trains": {
+        "enumerated": 15756,
+        "details_ok": 15756,
+        "details_failed": 0,
+        "codes_total": 15730,
+        "codes_new": 15716,
+        "codes_changed": 15716
+      },
+      "stations": {
+        "total": 3398,
+        "added": 0,
+        "renamed": 0,
+        "removed": 0
+      },
+      "mileage": {
+        "segments_total": 12050,
+        "segments_added": 12022,
+        "segments_missing_coords": 3356,
+        "gps_version": "1019a5c6d4343e88d092489a6a3d811a"
+      }
+    }
+  },
+  "coverage": {
+    "stations": 3398,
+    "trains": 15730,
+    "trains_with_timetable": 15730
+  },
+  "snapshot": {
+    "sequence": 1,
+    "file": "packs/d30042e3dc409de26bac56556ee635747d80cbc6d04b67038788a4af4bdd177a.json.gz",
+    "sha256": "d30042e3dc409de26bac56556ee635747d80cbc6d04b67038788a4af4bdd177a",
+    "bytes": 1725840
+  },
+  "deltas": [
+    {
+      "sequence": 1,
+      "file": "packs/049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac.json.gz",
+      "sha256": "049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac",
+      "bytes": 1725841
+    }
+  ]
+}
