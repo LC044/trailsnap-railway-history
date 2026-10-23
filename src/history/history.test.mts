@@ -12,6 +12,23 @@ const { mergeTrain, makeVersion }=await import('./merge');
 const { publishFeed }=await import('./feed');
 const { enumerate, retry }=await import('../collect');
 const { enumerateWithCheckpoint }=await import('../enumeration');
+const { fetchWithFallback, describeNetworkError }=await import('../utils/transport');
+
+test('transport fallback keeps TLS verification, JSON/status and nested error diagnostics',async()=>{
+  const failure=new Error('fetch failed',{cause:Object.assign(new Error('handshake failure'),{code:'ECONNRESET'})});
+  assert.match(describeNetworkError(failure),/ECONNRESET/);
+  const args:string[][]=[];
+  const response=await fetchWithFallback('https://search.12306.cn/test',{headers:{Accept:'application/json'}},null,
+    (async()=>{throw failure;}) as typeof fetch,async values=>{args.push(values);return '{"data":[]}\n200';});
+  assert.deepEqual(await response.json(),{data:[]});
+  assert.ok(!args[0].includes('--insecure') && !args[0].includes('-k'));
+  assert.ok(args[0].includes('=https'));
+  const rejected=await fetchWithFallback('https://search.12306.cn/test',{},null,
+    (async()=>new Response('unavailable',{status:503})) as typeof fetch,async()=>assert.fail('HTTP errors must not bypass retry'));
+  assert.equal(rejected.status,503);
+  await assert.rejects(fetchWithFallback('https://search.12306.cn/test',{},null,
+    (async()=>{throw failure;}) as typeof fetch,async()=>{throw new Error('curl unavailable');}),/ECONNRESET.*curl unavailable/);
+});
 
 test('list failures are deferred, saved prefixes resume, and incomplete enumeration fails closed',async()=>{
   const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'railway-enumeration-')),'checkpoint.json');

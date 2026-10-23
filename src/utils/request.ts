@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { fetchWithFallback, describeNetworkError } from './transport';
 
 import {
   REQUEST_RETRY_DELAY_MAX,
@@ -362,7 +363,7 @@ export class ProxyPoolManager {
 
     let rsp;
     try {
-      rsp = await fetch(url, fetchOptions);
+      rsp = await fetchWithFallback(url, fetchOptions, proxyUrl);
     } catch (err) {
       clearTimeout(timeoutId);
       throw err;
@@ -431,7 +432,7 @@ export class ProxyPoolManager {
         return {
           code: 0,
           success: false,
-          message: err instanceof Error ? err.message : String(err),
+          message: describeNetworkError(err),
         } as API.IResponse<T>;
       }
     }

@@ -60,3 +60,5 @@ gh workflow run collect.yml --repo LC044/trailsnap-railway-history -f publish_ex
 Actions 在采集前恢复列表/详情检查点，失败后也尝试缓存；缓存按查询日期与测试前缀、详情上限隔离，同日重新触发或重跑任务可继续。GitHub 缓存可能过期或被清理，缓存不可用时从头采集。快照 artifact 同样保留检查点供排查。测试样本只写隔离目录，不发布正式数据。
 
 验证命令：`npm test`、`npm run typecheck`。
+
+Node fetch 在某些运行器与官方服务器连接失败时，GET 请求自动回退到系统 curl（需安装 curl，GitHub Ubuntu 运行器已提供）；保留 HTTPS 证书验证，连接超时 5 秒、总超时 15 秒。HTTP 错误仍走正常重试，不当成成功；日志保留底层错误码用于区分 DNS、连接或 TLS 错误。
