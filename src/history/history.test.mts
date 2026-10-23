@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import type { StationHistory, TrainHistoryEntry } from './store';
+import type { StationHistory, StationRecord, TrainHistoryEntry } from './store';
 // Import after assigning isolation paths: tests never write production data.
 process.env.DATA_DIR=fs.mkdtempSync(path.join(os.tmpdir(),'railway-history-'));
 const store=await import('./store');
@@ -78,4 +78,18 @@ test('official station formats retain fields and fall back when homepage is unav
     return new Response(`var station_names='@${one}@${two}';`);
   }) as typeof fetch;
   assert.equal((await getStationNames(fetcher)).length,2);
+});
+
+test('retained history publication adds field snapshots without changing observations or status', async()=>{
+  const { addRetainedStationFields }=await import('./retained');
+  const history:StationHistory={};
+  store.updateStationHistory(history,[{name:'旧站',tele_code:'AAA',pinyin:'a',pinyin_short:'a',city:'A'}],'2026-10-01');
+  history.AAA.status='inactive';delete history.AAA.versions;
+  addRetainedStationFields(history,{version_no:'seed',stationList:[{id:'AAA',latitude:'30',longitute:'120'}]});
+  assert.equal(history.AAA.status,'inactive');
+  assert.equal(history.AAA.last_seen,'2026-10-01');
+  assert.equal((history.AAA as StationRecord).versions?.[0].data.gps_source,'12306-seed');
+  const before=JSON.stringify(history);
+  addRetainedStationFields(history,{version_no:'changed',stationList:[]});
+  assert.equal(JSON.stringify(history),before);
 });

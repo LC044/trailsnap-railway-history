@@ -2,6 +2,10 @@ name: Collect railway history
 on:
   workflow_dispatch:
     inputs:
+      publish_existing:
+        description: Publish retained history without repeating collection
+        type: boolean
+        default: false
       query_date_offset:
         description: Query date offset in days
         default: '0'
@@ -33,12 +37,16 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - run: npm test
       - name: Collect with checkpointing
+        if: ${{ !inputs.publish_existing }}
         env:
           QUERY_DATE_OFFSET: ${{ inputs.query_date_offset || '0' }}
           TEST_PREFIX: ${{ inputs.test_prefix || '' }}
           TEST_LIMIT: ${{ inputs.test_limit || '0' }}
           DATA_DIR: ${{ (inputs.test_prefix != '' || (inputs.test_limit != '' && inputs.test_limit != '0')) && 'snapshot/test-data' || 'data' }}
         run: npm run dev
+      - name: Publish retained history as a feed
+        if: ${{ inputs.publish_existing }}
+        run: npx tsx src/publish-existing.ts
       - name: Commit immutable packs and manifest together
         if: success() && inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
         run: |

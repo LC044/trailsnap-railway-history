@@ -43,3 +43,11 @@ TrailSnap 中 railway/history_cache.py 实现 SHA-256 校验、SQLite 事务与�
 ## 首版结果
 
 详见 FIRST-EDITION.md；首版包在本地 snapshot/initial-v1/，尚未远端发布。完整时刻表覆盖仍有限，不能依据列表条数声称采集完整。
+
+## 发布已有完整基线
+
+如果仓库已有历史但尚未建立 data/feed，可手动运行 Actions 并勾选 publish_existing；只转换现有观测并发布清单/历史包，不重新抓全国车次，也不会把发布时间伪装成运行日期。已有车站缺少字段版本时补入保留记录和 GPS 种子，状态、名称历史及车次日期保持不变。重复发布未变化历史不会提升 sequence。
+
+```powershell
+gh workflow run collect.yml --repo LC044/trailsnap-railway-history -f publish_existing=true
+```
