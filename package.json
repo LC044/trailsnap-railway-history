@@ -6,14 +6,16 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "check-proxies": "tsx src/validate_proxies.ts",
-    "test": "tsx --test src/history/history.test.mts"
+    "test": "tsx --test src/history/history.test.mts",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "Herbert He<herbert.he0229@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^25.2.3",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3"
   },
   "dependencies": {
     "https-proxy-agent": "^7.0.6"

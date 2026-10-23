@@ -36,14 +36,49 @@ jobs:
           cache: npm
       - run: npm ci --no-fund --no-audit
       - run: npm test
-      - name: Collect with checkpointing
+      - run: npm run typecheck
+      - name: Identify dated checkpoint scope
+        id: checkpoint-key
         if: ${{ !inputs.publish_existing }}
         env:
           QUERY_DATE_OFFSET: ${{ inputs.query_date_offset || '0' }}
           TEST_PREFIX: ${{ inputs.test_prefix || '' }}
           TEST_LIMIT: ${{ inputs.test_limit || '0' }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const date=new Date(Date.now()+Number(process.env.QUERY_DATE_OFFSET)*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
+          const scope=crypto.createHash('sha256').update(JSON.stringify([process.env.TEST_PREFIX,process.env.TEST_LIMIT])).digest('hex').slice(0,16);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`date=${date}\nkey=railway-checkpoints-v1-${date}-${scope}\n`);
+          NODE
+      - name: Restore collection checkpoints
+        if: ${{ !inputs.publish_existing }}
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            snapshot/enumeration_*.json
+            snapshot/checkpoint_*.json
+          key: ${{ steps.checkpoint-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ steps.checkpoint-key.outputs.key }}-
+      - name: Collect with checkpointing
+        if: ${{ !inputs.publish_existing }}
+        env:
+          QUERY_DATE_OFFSET: ${{ inputs.query_date_offset || '0' }}
+          QUERY_DATE: ${{ steps.checkpoint-key.outputs.date }}
+          TEST_PREFIX: ${{ inputs.test_prefix || '' }}
+          TEST_LIMIT: ${{ inputs.test_limit || '0' }}
           DATA_DIR: ${{ (inputs.test_prefix != '' || (inputs.test_limit != '' && inputs.test_limit != '0')) && 'snapshot/test-data' || 'data' }}
         run: npm run dev
+      - name: Save checkpoints even after collection failure
+        if: ${{ always() && !inputs.publish_existing && steps.checkpoint-key.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            snapshot/enumeration_*.json
+            snapshot/checkpoint_*.json
+          key: ${{ steps.checkpoint-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Publish retained history as a feed
         if: ${{ inputs.publish_existing }}
         run: npx tsx src/publish-existing.ts

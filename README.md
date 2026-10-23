@@ -30,6 +30,7 @@ Actions 先把包和清单一起推送，成功后创建独立 Release，附件�
 ## 参数
 
 - QUERY_DATE_OFFSET：查询日期偏移，默认 0。
+- QUERY_DATE：固定查询日期（YYYY-MM-DD），Actions 自动计算，避免跨午夜时检查点日期与采集日期不一致。
 - DATA_DIR / SNAPSHOT_DIR：历史及快照目录，可用绝对路径。
 - TEST_PREFIX：完整前缀，如 G101、1461；TEST_LIMIT：详情上限。
 - 测试模式必须显式指定隔离 DATA_DIR。
@@ -51,3 +52,11 @@ TrailSnap 中 railway/history_cache.py 实现 SHA-256 校验、SQLite 事务与�
 ```powershell
 gh workflow run collect.yml --repo LC044/trailsnap-railway-history -f publish_existing=true
 ```
+
+## 网络失败与断点恢复
+
+列表枚举按前缀保存成功响应到 `snapshot/enumeration_日期.json`，包括有效空列表；失败响应不会当成空列表。单个前缀请求先重试四次，仍失败则继续其他前缀，最后最多进行三轮补查（轮间等待 15/30 秒）。成功前缀不再请求；根前缀、查询日期不同不会复用旧结果。日志记录前缀、日期、HTTP 状态、响应形态和失败原因。全部前缀完整枚举后才进入时刻表与发布阶段，失败时保留正式 feed。
+
+Actions 在采集前恢复列表/详情检查点，失败后也尝试缓存；缓存按查询日期与测试前缀、详情上限隔离，同日重新触发或重跑任务可继续。GitHub 缓存可能过期或被清理，缓存不可用时从头采集。快照 artifact 同样保留检查点供排查。测试样本只写隔离目录，不发布正式数据。
+
+验证命令：`npm test`、`npm run typecheck`。

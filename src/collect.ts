@@ -9,14 +9,21 @@ import { SNAPSHOT_DIR, ensureDirs, loadStationHistory, updateStationHistory, sav
   buildNameToTelecode, loadClassHistory, saveClassHistory, saveSummary, saveSnapshot, type TrainHistoryEntry } from './history/store';
 import { makeVersion, mergeTrain } from './history/merge';
 import { publishFeed } from './history/feed';
+import { enumerateWithCheckpoint } from './enumeration';
 
 const sleep = (ms:number) => new Promise(r=>setTimeout(r,ms));
-export async function retry<T>(task:()=>Promise<T>, valid:(v:T)=>boolean, attempts=4):Promise<T> {
+export async function retry<T>(task:()=>Promise<T>, valid:(v:T)=>boolean, attempts=4, label='Request', pause=sleep):Promise<T> {
+  let reason='invalid response';
   for (let i=0;i<attempts;i++) {
-    try { const result=await task(); if (valid(result)) return result; } catch(e) { if(i===attempts-1) throw e; }
-    if(i<attempts-1) await sleep((i+1)*3000);
+    try {
+      const result=await task(); if (valid(result)) return result;
+      const response=result as any;
+      reason=`HTTP ${response?.code ?? 'unknown'}, success=${response?.success}, data=${Array.isArray(response?.data)?'array':typeof response?.data}, message=${String(response?.message??'').slice(0,160)}`;
+    } catch(e) { reason=e instanceof Error?e.message:String(e); }
+    console.warn(`[retry] ${label} ${i+1}/${attempts}: ${reason}`);
+    if(i<attempts-1) await pause((i+1)*3000);
   }
-  throw new Error('Request failed after retries');
+  throw new Error(`${label} failed after ${attempts} attempts: ${reason}`);
 }
 export async function enumerate(prefix:string, query:(prefix:string)=>Promise<ITrain[]>, result=new Map<string,ITrain>()) {
   const list=await query(prefix);
@@ -30,7 +37,7 @@ export async function enumerate(prefix:string, query:(prefix:string)=>Promise<IT
 export async function collect() {
   ensureDirs();
   const replay=process.env.REPLAY_SNAPSHOT_DIR;
-  const date=process.env.REPLAY_QUERY_DATE || new Date(Date.now()+Number(process.env.QUERY_DATE_OFFSET||0)*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
+  const date=process.env.REPLAY_QUERY_DATE || process.env.QUERY_DATE || new Date(Date.now()+Number(process.env.QUERY_DATE_OFFSET||0)*86400000).toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
   const observed=(replay && process.env.REPLAY_DATE) || new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Shanghai'});
   const limited=Number(process.env.TEST_LIMIT||0);
   const testMode=Boolean(process.env.TEST_PREFIX||limited);
@@ -52,14 +59,13 @@ export async function collect() {
   let trains:ITrain[];
   if(replay) trains=readSnapshot('train_list');
   else {
-    const found=new Map<string,ITrain>();
     const query=async(prefix:string)=>{
-      const rsp=await retry(()=>queryTrainListByKeywordAndDate(prefix,date.replaceAll('-','')),r=>r.success&&Array.isArray(r.data));
+      const rsp=await retry(()=>queryTrainListByKeywordAndDate(prefix,date.replaceAll('-','')),r=>r.success&&Array.isArray(r.data),4,`list ${prefix} (${date})`);
       console.log(`[list] ${prefix}: ${rsp.data!.length}`); return rsp.data!;
     };
     const roots=process.env.TEST_PREFIX?[process.env.TEST_PREFIX]:
       ['G','D','C','K','Z','T','S','Y','L','A',''].flatMap(c=>Array.from({length:9},(_,i)=>`${c}${i+1}`));
-    for(const prefix of roots) await enumerate(prefix,query,found);
+    const found=await enumerateWithCheckpoint(roots,date,query,path.join(SNAPSHOT_DIR,`enumeration_${date}.json`));
     trains=[...found.values()];
   }
   if(!trains.length) throw new Error('Empty train enumeration');
@@ -76,7 +82,7 @@ export async function collect() {
       await Promise.all(selected.slice(i,i+100).map(t=>scheduler.add(async()=>{
         if(checkpoint[t.train_no]) {details.push(checkpoint[t.train_no]);return;}
         try {
-          const rsp=await retry(()=>queryTrainDetailByTrainNoAndDate(t.train_no,date),r=>r.success&&Array.isArray(r.data?.data)&&r.data.data.length>1);
+          const rsp=await retry(()=>queryTrainDetailByTrainNoAndDate(t.train_no,date),r=>r.success&&Array.isArray(r.data?.data)&&r.data.data.length>1,4,`detail ${t.train_no} (${date})`);
           const detail={...t,stops:rsp.data!.data}; checkpoint[t.train_no]=detail;details.push(detail);
         } catch {failures.push(t.train_no);}
       })));

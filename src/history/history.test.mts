@@ -11,6 +11,47 @@ const store=await import('./store');
 const { mergeTrain, makeVersion }=await import('./merge');
 const { publishFeed }=await import('./feed');
 const { enumerate, retry }=await import('../collect');
+const { enumerateWithCheckpoint }=await import('../enumeration');
+
+test('list failures are deferred, saved prefixes resume, and incomplete enumeration fails closed',async()=>{
+  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'railway-enumeration-')),'checkpoint.json');
+  const one={train_no:'no',station_train_code:'G12',date:'20261024',from_station:'A',to_station:'B',total_num:'2'};
+  const calls:string[]=[];
+  await assert.rejects(enumerateWithCheckpoint(['G1','D1'],'2026-10-24',async p=>{
+    calls.push(p);if(p==='D1')throw new Error('HTTP 503 unavailable');return [one];
+  },file,{rounds:2,pause:async()=>{}}),/D1: HTTP 503 unavailable/);
+  assert.deepEqual(calls,['G1','D1','D1']);
+  const saved=JSON.parse(fs.readFileSync(file,'utf8'));
+  assert.deepEqual(Object.keys(saved.responses),['G1']);
+  const resumed:string[]=[];
+  const result=await enumerateWithCheckpoint(['G1','D1'],'2026-10-24',async p=>{resumed.push(p);return [];},file);
+  assert.deepEqual(resumed,['D1']);assert.equal(result.size,1);
+  const fresh:string[]=[];
+  await enumerateWithCheckpoint(['G1','D1'],'2026-10-25',async p=>{fresh.push(p);return [];},file);
+  assert.deepEqual(fresh,['G1','D1']);
+  fresh.length=0;
+  await enumerateWithCheckpoint(['G1'],'2026-10-25',async p=>{fresh.push(p);return [];},file);
+  assert.deepEqual(fresh,['G1']);
+});
+
+test('truncated parent, successful children and exact train matches survive retry',async()=>{
+  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'railway-enumeration-')),'checkpoint.json');
+  const one={train_no:'no',station_train_code:'G1',date:'20261024',from_station:'A',to_station:'B',total_num:'2'};
+  let attempts=0;const calls:string[]=[];
+  const found=await enumerateWithCheckpoint(['G1'],'2026-10-24',async p=>{
+    calls.push(p);if(p==='G12' && ++attempts===1)throw new Error('timeout');
+    return p==='G1'?Array.from({length:200},()=>one):p==='G12'?[one]:[];
+  },file,{pause:async()=>{}});
+  assert.equal(found.size,1);assert.equal(attempts,2);
+  assert.equal(calls.filter(p=>p==='G1').length,1);
+  assert.ok(calls.indexOf('G19')<calls.lastIndexOf('G12'));
+  assert.equal((await enumerateWithCheckpoint(['G1'],'2026-10-24',async()=>assert.fail('cached response refetched'),file)).size,1);
+});
+
+test('retry retains prefix and response diagnostics',async()=>{
+  await assert.rejects(retry(async()=>({code:200,success:true}),()=>false,2,'list G12 (2026-10-24)',async()=>{}),/list G12.*HTTP 200.*data=undefined/);
+  await assert.rejects(retry(async()=>{throw new Error('socket timeout');},()=>true,1,'list G12'),/list G12.*socket timeout/);
+});
 
 test('station rename, metadata change, disappearance and reactivation preserve all history',()=>{
   const history:StationHistory={};
