@@ -1,28 +1,28 @@
 {
-  "run_date": "2026-10-23",
-  "query_date": "20261023",
-  "duration_seconds": 16365,
+  "query_date": "2026-10-25",
+  "observed_date": "2026-10-25",
   "test_mode": false,
-  "http_success": 16097,
-  "http_permanent_failed": 0,
-  "trains": {
-    "enumerated": 15756,
-    "details_ok": 15756,
-    "details_failed": 0,
-    "codes_total": 15730,
-    "codes_new": 15716,
-    "codes_changed": 15716
+  "replay": false,
+  "stations": 3404,
+  "station_changes": {
+    "added": [
+      "百浪",
+      "牡丹江",
+      "来宾",
+      "眉山",
+      "宁都",
+      "巫山"
+    ],
+    "renamed": [],
+    "removed": []
   },
-  "stations": {
-    "total": 3398,
-    "added": 0,
-    "renamed": 0,
-    "removed": 0
-  },
-  "mileage": {
-    "segments_total": 12050,
-    "segments_added": 12022,
-    "segments_missing_coords": 3356,
-    "gps_version": "1019a5c6d4343e88d092489a6a3d811a"
-  }
+  "enumerated_codes": 16351,
+  "enumerated_train_nos": 12664,
+  "details_ok": 12664,
+  "details_failed": 0,
+  "details_unavailable": 0,
+  "complete": true,
+  "gps_stations": 3410,
+  "gps_source": "bundled seed (not freshly fetched)",
+  "failed_train_nos": []
 }
