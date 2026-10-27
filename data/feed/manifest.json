@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "sequence": 3,
-  "generated_at": "2026-10-26T01:18:52.268Z",
+  "sequence": 4,
+  "generated_at": "2026-10-27T02:45:17.837Z",
   "metadata": {
-    "query_date": "2026-10-26",
-    "observed_date": "2026-10-26",
+    "query_date": "2026-10-27",
+    "observed_date": "2026-10-27",
     "test_mode": false,
     "replay": false,
     "stations": 3404,
@@ -13,28 +13,28 @@
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 15665,
-    "enumerated_train_nos": 12058,
-    "details_ok": 12057,
+    "enumerated_codes": 15351,
+    "enumerated_train_nos": 11803,
+    "details_ok": 11802,
     "details_failed": 1,
     "details_unavailable": 1,
     "complete": false,
     "gps_stations": 3410,
     "gps_source": "bundled seed (not freshly fetched)",
     "failed_train_nos": [
-      "5j000G753804"
+      "770000D97800"
     ]
   },
   "coverage": {
     "stations": 3404,
-    "trains": 16585,
-    "trains_with_timetable": 16585
+    "trains": 16607,
+    "trains_with_timetable": 16607
   },
   "snapshot": {
-    "sequence": 3,
-    "file": "packs/4d021e86e007b382b0f004fec42dc2618e7d4a087148aba6b449039085afa953.json.gz",
-    "sha256": "4d021e86e007b382b0f004fec42dc2618e7d4a087148aba6b449039085afa953",
-    "bytes": 6672914
+    "sequence": 4,
+    "file": "packs/b137fbab687e672773177792916bea6ad3dd52141de8dc4e8d94241105174ebe.json.gz",
+    "sha256": "b137fbab687e672773177792916bea6ad3dd52141de8dc4e8d94241105174ebe",
+    "bytes": 6702679
   },
   "deltas": [
     {
@@ -54,6 +54,12 @@
       "file": "packs/c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34.json.gz",
       "sha256": "c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34",
       "bytes": 6438254
+    },
+    {
+      "sequence": 4,
+      "file": "packs/14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022.json.gz",
+      "sha256": "14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022",
+      "bytes": 6373408
     }
   ]
 }
