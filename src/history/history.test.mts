@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import type { StationHistory, StationRecord, TrainHistoryEntry } from './store';
 // Import after assigning isolation paths: tests never write production data.
 process.env.DATA_DIR=fs.mkdtempSync(path.join(os.tmpdir(),'railway-history-'));
+process.env.SNAPSHOT_DIR=fs.mkdtempSync(path.join(os.tmpdir(),'railway-snapshot-'));
 const store=await import('./store');
 const { mergeTrain, makeVersion }=await import('./merge');
-const { publishFeed }=await import('./feed');
+const { publishFeed, snapshotPath, snapshotTag, sha256 }=await import('./feed');
 const { enumerate, retry }=await import('../collect');
 const { enumerateWithCheckpoint }=await import('../enumeration');
 const { fetchWithFallback, describeNetworkError }=await import('../utils/transport');
@@ -112,14 +113,60 @@ test('immutable feed supports bootstrap, no-op, changed entities and deletion pr
   store.updateStationHistory(history,[{name:'A',tele_code:'AAA',pinyin:'a',pinyin_short:'a',city:'A'}],'2026-10-01');
   store.saveStationHistory(history);
   const first=publishFeed({complete:false});
-  const bytes=fs.readFileSync(path.join(store.DATA_DIR,'feed',first.snapshot.file));
-  assert.equal(JSON.parse(gunzipSync(bytes).toString()).upserts.length,1);
+  const bytes=fs.readFileSync(snapshotPath(first.snapshot));
+  assert.equal(JSON.parse(gunzipSync(bytes).toString()).stations.length,1);
+  assert.equal(first.schema_version,2);
+  assert.match(first.snapshot.url!,/github.com\/LC044\/trailsnap-railway-history\/releases\/download\//);
+  assert.deepEqual(first.deltas,[]);
+  assert.ok(!fs.existsSync(path.join(store.DATA_DIR,'feed',first.snapshot.file)));
   assert.equal(publishFeed({}).sequence,1);
   store.updateStationHistory(history,[{name:'B',tele_code:'AAA',pinyin:'b',pinyin_short:'b',city:'A'}],'2026-10-02');
   store.saveStationHistory(history);
   assert.equal(publishFeed({}).sequence,2);
-  assert.ok(fs.existsSync(path.join(store.DATA_DIR,'feed',first.snapshot.file)));
+  assert.ok(fs.existsSync(snapshotPath(first.snapshot)));
   store.saveStationHistory({});
+  assert.throws(()=>publishFeed({}),/history deletion/);
+});
+
+test('v2 date-only deltas omit timetable content and migrate v1 sequence',()=>{
+  store.ensureDirs();
+  store.saveStationHistory({});
+  const feedDir=path.join(store.DATA_DIR,'feed');
+  fs.writeFileSync(path.join(feedDir,'manifest.json'),JSON.stringify({schema_version:1,sequence:900}));
+  const entry:TrainHistoryEntry={code:'G1',versions:[]};
+  const v=makeVersion('n','A','B',[{n:'A',c:'AAA',a:null,d:'08:00',dd:0}], '2026-10-01',{});
+  mergeTrain(entry,v,'2026-10-01');
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  const first=publishFeed({});
+  assert.equal(first.sequence,1);
+  mergeTrain(entry,v,'2026-10-02');
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  const second=publishFeed({});
+  const delta=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,second.deltas.at(-1)!.file))).toString());
+  assert.deepEqual(delta.train_versions,[]);
+  assert.deepEqual(delta.observations[0].dates,['2026-10-02']);
+  assert.equal(publishFeed({}).sequence,2);
+  const b=makeVersion('n','A','B',[{n:'A',c:'AAA',a:null,d:'09:00',dd:0}], '2026-10-03',{});
+  mergeTrain(entry,b,'2026-10-03');
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  const third=publishFeed({});
+  const changed=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,third.deltas.at(-1)!.file))).toString());
+  assert.equal(changed.train_versions.length,1);
+  mergeTrain(entry,v,'2026-10-04');
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  const fourth=publishFeed({});
+  const reverted=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,fourth.deltas.at(-1)!.file))).toString());
+  assert.deepEqual(reverted.train_versions,[]);
+  assert.equal(reverted.observations[0].hash,v.h);
+  assert.deepEqual(reverted.observations[0].dates,['2026-10-04']);
+  entry.versions[0].f='mutated';
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  assert.throws(()=>publishFeed({}),/Version content changed/);
+  entry.versions[0].f='A';
+  entry.versions[0].dates=['2026-10-01'];
+  store.saveClassHistory('G',new Map([['G1',entry]]));
+  assert.throws(()=>publishFeed({}),/observation deletion/);
+  fs.writeFileSync(store.classFile('G'),'');
   assert.throws(()=>publishFeed({}),/history deletion/);
 });
 
@@ -150,4 +197,50 @@ test('retained history publication adds field snapshots without changing observa
   const before=JSON.stringify(history);
   addRetainedStationFields(history,{version_no:'changed',stationList:[]});
   assert.equal(JSON.stringify(history),before);
+});
+
+test('Release bytes are verified before git; upload failures and retries leave the old manifest unexposed',async()=>{
+  const {releaseFeed}=await import('../release-feed');
+  const raw=gzipSync(JSON.stringify({schema_version:2,sequence:10,full:true,stations:[],train_versions:[],observations:[]}));
+  const hash=sha256(raw);
+  const descriptor={sequence:10,file:`packs/${hash}.json.gz`,sha256:hash,bytes:raw.length,
+    url:`https://github.com/LC044/trailsnap-railway-history/releases/download/${snapshotTag(hash)}/${hash}.json.gz`};
+  fs.mkdirSync(path.dirname(snapshotPath(descriptor)),{recursive:true});
+  fs.writeFileSync(snapshotPath(descriptor),raw);
+  fs.writeFileSync(path.join(store.DATA_DIR,'feed/manifest.json'),JSON.stringify({schema_version:2,sequence:10,snapshot:descriptor,deltas:[]}));
+  const calls:string[]=[];
+  let exists=false; let uploaded=false; let failUpload=true; let corrupt=false; let draft=false; let fullStaged=false;
+  const run=(program:string,args:string[])=>{
+    calls.push([program,...args.slice(0,3)].join(' '));
+    if(program==='gh') {
+      if(args[1]==='view') {if(!exists) throw new Error('not found');return JSON.stringify({isDraft:draft,assets:uploaded?[{name:`${hash}.json.gz`}]:[]});}
+      if(args[1]==='create') {exists=true;if(failUpload) throw new Error('upload failed');uploaded=true;}
+      if(args[1]==='upload') {if(failUpload) throw new Error('upload failed');uploaded=true;}
+      if(args[1]==='download') fs.writeFileSync(path.join(args[args.indexOf('--dir')+1],`${hash}.json.gz`),corrupt?Buffer.from('corrupt'):raw);
+    }
+    if(program==='git' && args[0]==='rev-parse') return 'a'.repeat(40);
+    if(program==='git' && args.includes('--diff-filter=AM')) return fullStaged?snapshotPath(descriptor):'';
+    if(program==='git' && args[0]==='diff' && !args.includes('--diff-filter=AM')) return 'data/feed/manifest.json';
+    return '';
+  };
+  assert.throws(()=>releaseFeed(run),/upload failed/);
+  assert.ok(!calls.some(c=>c.startsWith('git add')||c.startsWith('git push')));
+  calls.length=0;failUpload=false;corrupt=true;
+  assert.throws(()=>releaseFeed(run),/checksum/);
+  assert.ok(!calls.some(c=>c.startsWith('git add')));
+  calls.length=0;corrupt=false;draft=true;
+  releaseFeed(run);
+  assert.ok(calls.findIndex(c=>c.startsWith('gh release download'))<calls.findIndex(c=>c.startsWith('git add')));
+  assert.ok(calls.findIndex(c=>c.startsWith('gh release edit'))<calls.findIndex(c=>c.startsWith('git push')));
+  assert.ok(!calls.some(c=>c.startsWith('gh release create')));
+  calls.length=0;draft=false;
+  releaseFeed(run);
+  assert.ok(!calls.some(c=>c.startsWith('gh release create')||c.startsWith('gh release upload')));
+  calls.length=0;exists=false;
+  releaseFeed(run);
+  assert.ok(calls.some(c=>c.startsWith('gh release create')));
+  assert.ok(calls.findIndex(c=>c.startsWith('gh release download'))<calls.findIndex(c=>c.startsWith('git push')));
+  calls.length=0;fullStaged=true;
+  assert.throws(()=>releaseFeed(run),/Refusing to commit a full snapshot/);
+  assert.ok(!calls.some(c=>c.startsWith('git push')));
 });

@@ -1,29 +1,34 @@
 {
-  "schema_version": 1,
-  "sequence": 7,
-  "generated_at": "2026-10-30T03:05:15.181Z",
+  "schema_version": 2,
+  "sequence": 1,
+  "generated_at": "2026-10-30T04:31:31.084Z",
   "metadata": {
-    "query_date": "2026-10-30",
-    "observed_date": "2026-10-30",
-    "test_mode": false,
-    "replay": false,
-    "stations": 3404,
-    "station_changes": {
-      "added": [],
-      "renamed": [],
-      "removed": []
-    },
-    "enumerated_codes": 16252,
-    "enumerated_train_nos": 12584,
-    "details_ok": 12583,
-    "details_failed": 1,
-    "details_unavailable": 1,
+    "source": "retained-history",
     "complete": false,
-    "gps_stations": 3410,
-    "gps_source": "bundled seed (not freshly fetched)",
-    "failed_train_nos": [
-      "7b000G396900"
-    ]
+    "note": "Packages built from existing retained observations; no new train queries or operating dates were added.",
+    "collection_summary": {
+      "query_date": "2026-10-30",
+      "observed_date": "2026-10-30",
+      "test_mode": false,
+      "replay": false,
+      "stations": 3404,
+      "station_changes": {
+        "added": [],
+        "renamed": [],
+        "removed": []
+      },
+      "enumerated_codes": 16252,
+      "enumerated_train_nos": 12584,
+      "details_ok": 12583,
+      "details_failed": 1,
+      "details_unavailable": 1,
+      "complete": false,
+      "gps_stations": 3410,
+      "gps_source": "bundled seed (not freshly fetched)",
+      "failed_train_nos": [
+        "7b000G396900"
+      ]
+    }
   },
   "coverage": {
     "stations": 3404,
@@ -31,53 +36,11 @@
     "trains_with_timetable": 16721
   },
   "snapshot": {
-    "sequence": 7,
-    "file": "packs/52b9263ef0d263f73bdc26ba78b68da304b3965b2d01a3b496cbca7e59f496a8.json.gz",
-    "sha256": "52b9263ef0d263f73bdc26ba78b68da304b3965b2d01a3b496cbca7e59f496a8",
-    "bytes": 6780322
+    "sequence": 1,
+    "file": "packs/3d46c43b0b97558e524122828b110a25a76cacd398db8beec6f35ffb550f135c.json.gz",
+    "sha256": "3d46c43b0b97558e524122828b110a25a76cacd398db8beec6f35ffb550f135c",
+    "bytes": 7013787,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-3d46c43b0b97558e524122828b110a25a76cacd398db8beec6f35ffb550f135c/3d46c43b0b97558e524122828b110a25a76cacd398db8beec6f35ffb550f135c.json.gz"
   },
-  "deltas": [
-    {
-      "sequence": 1,
-      "file": "packs/049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac.json.gz",
-      "sha256": "049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac",
-      "bytes": 1725841
-    },
-    {
-      "sequence": 2,
-      "file": "packs/37047fa2b86c8ce819480a0e4473a2d8bf46bf5e8aea321065bc8f315ca27d9d.json.gz",
-      "sha256": "37047fa2b86c8ce819480a0e4473a2d8bf46bf5e8aea321065bc8f315ca27d9d",
-      "bytes": 6608877
-    },
-    {
-      "sequence": 3,
-      "file": "packs/c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34.json.gz",
-      "sha256": "c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34",
-      "bytes": 6438254
-    },
-    {
-      "sequence": 4,
-      "file": "packs/14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022.json.gz",
-      "sha256": "14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022",
-      "bytes": 6373408
-    },
-    {
-      "sequence": 5,
-      "file": "packs/bc719a0f6ad1190cdbc0a2d96acd37933334f84548598c23f6b27565922fdc90.json.gz",
-      "sha256": "bc719a0f6ad1190cdbc0a2d96acd37933334f84548598c23f6b27565922fdc90",
-      "bytes": 6391049
-    },
-    {
-      "sequence": 6,
-      "file": "packs/e3e50dab3a9758cff464881a21126060305630d280362a93ea23936d03a254ae.json.gz",
-      "sha256": "e3e50dab3a9758cff464881a21126060305630d280362a93ea23936d03a254ae",
-      "bytes": 6405109
-    },
-    {
-      "sequence": 7,
-      "file": "packs/26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8.json.gz",
-      "sha256": "26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8",
-      "bytes": 6646944
-    }
-  ]
+  "deltas": []
 }
