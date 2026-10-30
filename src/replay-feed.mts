@@ -34,4 +34,3 @@ for(const sha of shas){
 }
 fs.writeFileSync(path.join(output,'report.json'),JSON.stringify({repository:repo,feed:path.join(process.env.DATA_DIR,'feed'),snapshots:path.join(process.env.SNAPSHOT_DIR,'feed'),rows},null,2));
 console.log(JSON.stringify(rows,null,2));
-
