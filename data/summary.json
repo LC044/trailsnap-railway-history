@@ -1,23 +1,27 @@
 {
-  "query_date": "2026-10-30",
-  "observed_date": "2026-10-30",
+  "query_date": "2026-10-31",
+  "observed_date": "2026-10-31",
   "test_mode": false,
   "replay": false,
-  "stations": 3404,
+  "stations": 3407,
   "station_changes": {
-    "added": [],
+    "added": [
+      "成都龙泉驿",
+      "寿安",
+      "南通东"
+    ],
     "renamed": [],
     "removed": []
   },
-  "enumerated_codes": 16252,
-  "enumerated_train_nos": 12584,
-  "details_ok": 12583,
+  "enumerated_codes": 15985,
+  "enumerated_train_nos": 12330,
+  "details_ok": 12329,
   "details_failed": 1,
   "details_unavailable": 1,
   "complete": false,
   "gps_stations": 3410,
   "gps_source": "bundled seed (not freshly fetched)",
   "failed_train_nos": [
-    "7b000G396900"
+    "77000G87620A"
   ]
 }

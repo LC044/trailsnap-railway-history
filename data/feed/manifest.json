@@ -1,40 +1,44 @@
 {
   "schema_version": 1,
-  "sequence": 7,
-  "generated_at": "2026-10-30T03:05:15.181Z",
+  "sequence": 8,
+  "generated_at": "2026-10-31T02:51:42.876Z",
   "metadata": {
-    "query_date": "2026-10-30",
-    "observed_date": "2026-10-30",
+    "query_date": "2026-10-31",
+    "observed_date": "2026-10-31",
     "test_mode": false,
     "replay": false,
-    "stations": 3404,
+    "stations": 3407,
     "station_changes": {
-      "added": [],
+      "added": [
+        "成都龙泉驿",
+        "寿安",
+        "南通东"
+      ],
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 16252,
-    "enumerated_train_nos": 12584,
-    "details_ok": 12583,
+    "enumerated_codes": 15985,
+    "enumerated_train_nos": 12330,
+    "details_ok": 12329,
     "details_failed": 1,
     "details_unavailable": 1,
     "complete": false,
     "gps_stations": 3410,
     "gps_source": "bundled seed (not freshly fetched)",
     "failed_train_nos": [
-      "7b000G396900"
+      "77000G87620A"
     ]
   },
   "coverage": {
-    "stations": 3404,
-    "trains": 16721,
-    "trains_with_timetable": 16721
+    "stations": 3407,
+    "trains": 16781,
+    "trains_with_timetable": 16781
   },
   "snapshot": {
-    "sequence": 7,
-    "file": "packs/52b9263ef0d263f73bdc26ba78b68da304b3965b2d01a3b496cbca7e59f496a8.json.gz",
-    "sha256": "52b9263ef0d263f73bdc26ba78b68da304b3965b2d01a3b496cbca7e59f496a8",
-    "bytes": 6780322
+    "sequence": 8,
+    "file": "packs/3748a34a1bce31c37b2fd56a39f12b53788300140bbb4150da9a9d14065a2544.json.gz",
+    "sha256": "3748a34a1bce31c37b2fd56a39f12b53788300140bbb4150da9a9d14065a2544",
+    "bytes": 6894943
   },
   "deltas": [
     {
@@ -78,6 +82,12 @@
       "file": "packs/26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8.json.gz",
       "sha256": "26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8",
       "bytes": 6646944
+    },
+    {
+      "sequence": 8,
+      "file": "packs/cc06df33a5c539c6ebbc17ee09ded26c06bd64df8a65e6967ab41209cbb69f67.json.gz",
+      "sha256": "cc06df33a5c539c6ebbc17ee09ded26c06bd64df8a65e6967ab41209cbb69f67",
+      "bytes": 6681120
     }
   ]
 }
