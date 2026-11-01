@@ -1,33 +1,38 @@
 {
-  "schema_version": 1,
-  "sequence": 8,
-  "generated_at": "2026-10-31T02:51:42.876Z",
+  "schema_version": 2,
+  "sequence": 1,
+  "generated_at": "2026-11-01T00:22:45.224Z",
   "metadata": {
-    "query_date": "2026-10-31",
-    "observed_date": "2026-10-31",
-    "test_mode": false,
-    "replay": false,
-    "stations": 3407,
-    "station_changes": {
-      "added": [
-        "成都龙泉驿",
-        "寿安",
-        "南通东"
-      ],
-      "renamed": [],
-      "removed": []
-    },
-    "enumerated_codes": 15985,
-    "enumerated_train_nos": 12330,
-    "details_ok": 12329,
-    "details_failed": 1,
-    "details_unavailable": 1,
+    "source": "retained-history",
     "complete": false,
-    "gps_stations": 3410,
-    "gps_source": "bundled seed (not freshly fetched)",
-    "failed_train_nos": [
-      "77000G87620A"
-    ]
+    "note": "Packages built from existing retained observations; no new train queries or operating dates were added.",
+    "collection_summary": {
+      "query_date": "2026-10-31",
+      "observed_date": "2026-10-31",
+      "test_mode": false,
+      "replay": false,
+      "stations": 3407,
+      "station_changes": {
+        "added": [
+          "成都龙泉驿",
+          "寿安",
+          "南通东"
+        ],
+        "renamed": [],
+        "removed": []
+      },
+      "enumerated_codes": 15985,
+      "enumerated_train_nos": 12330,
+      "details_ok": 12329,
+      "details_failed": 1,
+      "details_unavailable": 1,
+      "complete": false,
+      "gps_stations": 3410,
+      "gps_source": "bundled seed (not freshly fetched)",
+      "failed_train_nos": [
+        "77000G87620A"
+      ]
+    }
   },
   "coverage": {
     "stations": 3407,
@@ -35,59 +40,11 @@
     "trains_with_timetable": 16781
   },
   "snapshot": {
-    "sequence": 8,
-    "file": "packs/3748a34a1bce31c37b2fd56a39f12b53788300140bbb4150da9a9d14065a2544.json.gz",
-    "sha256": "3748a34a1bce31c37b2fd56a39f12b53788300140bbb4150da9a9d14065a2544",
-    "bytes": 6894943
+    "sequence": 1,
+    "file": "packs/52684681929739b86a8c77b7d1dfa8882dc857cf98cea5bae9b593e2605af680.json.gz",
+    "sha256": "52684681929739b86a8c77b7d1dfa8882dc857cf98cea5bae9b593e2605af680",
+    "bytes": 7122973,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-52684681929739b86a8c77b7d1dfa8882dc857cf98cea5bae9b593e2605af680/52684681929739b86a8c77b7d1dfa8882dc857cf98cea5bae9b593e2605af680.json.gz"
   },
-  "deltas": [
-    {
-      "sequence": 1,
-      "file": "packs/049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac.json.gz",
-      "sha256": "049b13a8935ca66e90f154d99791fb097d35845cdf9d631ac1de96fc3aec01ac",
-      "bytes": 1725841
-    },
-    {
-      "sequence": 2,
-      "file": "packs/37047fa2b86c8ce819480a0e4473a2d8bf46bf5e8aea321065bc8f315ca27d9d.json.gz",
-      "sha256": "37047fa2b86c8ce819480a0e4473a2d8bf46bf5e8aea321065bc8f315ca27d9d",
-      "bytes": 6608877
-    },
-    {
-      "sequence": 3,
-      "file": "packs/c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34.json.gz",
-      "sha256": "c68ebc659ec722d9ec70a16dc83229384df609b3a06aa4d379495de831a1be34",
-      "bytes": 6438254
-    },
-    {
-      "sequence": 4,
-      "file": "packs/14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022.json.gz",
-      "sha256": "14b7067ac39f8df66a64b60b4d2964afeb93f6ccd2496f030edb0c2757e87022",
-      "bytes": 6373408
-    },
-    {
-      "sequence": 5,
-      "file": "packs/bc719a0f6ad1190cdbc0a2d96acd37933334f84548598c23f6b27565922fdc90.json.gz",
-      "sha256": "bc719a0f6ad1190cdbc0a2d96acd37933334f84548598c23f6b27565922fdc90",
-      "bytes": 6391049
-    },
-    {
-      "sequence": 6,
-      "file": "packs/e3e50dab3a9758cff464881a21126060305630d280362a93ea23936d03a254ae.json.gz",
-      "sha256": "e3e50dab3a9758cff464881a21126060305630d280362a93ea23936d03a254ae",
-      "bytes": 6405109
-    },
-    {
-      "sequence": 7,
-      "file": "packs/26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8.json.gz",
-      "sha256": "26c7e16226f5249fbb41c60b838aa401bd713bdc129e675561cdc5705e0ef2a8",
-      "bytes": 6646944
-    },
-    {
-      "sequence": 8,
-      "file": "packs/cc06df33a5c539c6ebbc17ee09ded26c06bd64df8a65e6967ab41209cbb69f67.json.gz",
-      "sha256": "cc06df33a5c539c6ebbc17ee09ded26c06bd64df8a65e6967ab41209cbb69f67",
-      "bytes": 6681120
-    }
-  ]
+  "deltas": []
 }
