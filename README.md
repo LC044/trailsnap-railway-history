@@ -19,13 +19,14 @@ npm run dev
 - data/stations/station_history.json：电报码为键，names 名称观测、versions 原字段/GPS 快照、status_history 状态观测。
 - data/trains/history_*.jsonl：车次与所有内容版本；每个版本 dates 为已观测日期，fd/ld 只是日期边界，不代表边界内每天都验证过。
 - data/feed/manifest.json：协议版本、单调序号、覆盖说明、全历史 snapshot 及全部 delta 描述。
-- data/feed/packs/<sha256>.json.gz：不可变压缩包，首次可下载全历史 snapshot，以后只下载游标后的 delta。
+- data/feed/packs/<sha256>.json.gz：Git 中只新增不可变 delta。首次/跨协议/缺包时从 manifest.snapshot.url 下载 Release 全历史快照；不需要克隆仓库。已有历史包保留，不重写 Git 历史。
+- snapshot/feed/packs/<sha256>.json.gz：新全量快照的本地暂存位置，已被 Git 忽略，仅上传 Release 附件。
 - assets/station_gps.json：现有 12306 坐标种子；当前没有验证可自动刷新的官方 GPS 接口。原始坐标和版本嵌入车站历史，缺失时不猜测。
 - snapshot/：诊断快照和隔离试跑，不进 Git。Actions Artifact 有过期时间，不能作为历史唯一存储。
 
-每个包包含 schema_version、sequence、full、upserts（key=station:电报码 或 train:车次，value=历史实体）。manifest 描述包含 SHA-256 和压缩字节数。包只能增加和更新，不删除实体；变更实体携带其保留的全部历史。v1 增量按实体发送，并非最小观测事件；数据规模增大后可另设计 v2 分片，保留老包兼容已有客户端。
+当前只发布 v2（schema_version=2），仍使用 data/feed/ 地址，停止 v1 兼容更新。包包含 sequence、full、stations、train_versions、observations。stations 是站点实体；train_versions 为 {code,value}，value 保留 h/no/f/t/s/raw 等内容，不含 dates/fd/ld/observed_at；observations 为 {code,hash,dates,observed_at?}，只发送新观测日期。无时刻表变化时不重发内容，A→B→A 只追加 A 的观测日期。snapshot 包含全部内容与日期，delta 只含新增内容、日期及变化站点。manifest 描述包含 SHA-256 和压缩字节数。版本内容不可变，版本或观测被删除时拒绝发布。
 
-Actions 先把包和清单一起推送，成功后创建独立 Release，附件提供全历史 snapshot。测试模式不推送或发布；失败时仅上传诊断 artifact。不要在正式 data/ 上试跑或与其他采集进程同时写入。
+Actions 使用浅克隆（fetch-depth=1）。先以完整 SHA-256 命名的不可变 tag `snapshot-v2-<sha256>` 上传 Release 附件 `<sha256>.json.gz` 和 manifest.json，再下载附件核对大小、SHA-256、协议和序号，成功后才提交增量和清单并推送。失败不会推送悬空清单；已有 Release 可复用，缺附件可补传，损坏附件拒绝覆盖和发布。首次 v2 发布不生成冗余的全量 delta 1；重复发布不提升数据序号。测试模式不推送或发布；失败时仅上传诊断 artifact。不要在正式 data/ 上试跑或与其他采集进程同时写入。
 
 ## 参数
 
@@ -36,6 +37,8 @@ Actions 先把包和清单一起推送，成功后创建独立 Release，附件�
 - 测试模式必须显式指定隔离 DATA_DIR。
 - REPLAY_SNAPSHOT_DIR：重放已有 stations_日期.json、train_list_日期.json、train_detail_日期.json。
 - REPLAY_DATE：输入文件日期；REPLAY_QUERY_DATE：显式运行日期，详情无法关联列表时必须提供，禁止误将旧数据标成今天。
+
+旧版 TrailSnap 收到 v2 会同步失败但保留本地缓存；安装支持 v2 的新版后自动通过内置或远端全量快照迁移，成功后切换独立协议游标，不需要手动清库。发布器首次读取 v1 清单时从当前保留历史生成 v2 序号 1，不沿用旧增量链；旧不可变包作为归档保留。
 
 TrailSnap 中 railway/history_cache.py 实现 SHA-256 校验、SQLite 事务与游标增量导入；railway/history_cli.py 可用于本地导入。默认每天从本仓库 main 分支 data/feed/ 同步，首次同步前仍使用静态种子。历史查询精确命中观测日，否则使用最近完整时刻表；未知或仅列表车次只使用起终站，其余信息可为空。
 
@@ -62,3 +65,9 @@ Actions 在采集前恢复列表/详情检查点，失败后也尝试缓存；�
 验证命令：`npm test`、`npm run typecheck`。
 
 Node fetch 在某些运行器与官方服务器连接失败时，GET 请求自动回退到系统 curl（需安装 curl，GitHub Ubuntu 运行器已提供）；保留 HTTPS 证书验证，连接超时 5 秒、总超时 15 秒。HTTP 错误仍走正常重试，不当成成功；日志保留底层错误码用于区分 DNS、连接或 TLS 错误。
+
+## Release 快照与客户端
+
+快照描述保留 file=packs/<sha256>.json.gz 作为离线种子的本地路径，并新增 url=https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-<sha256>/<sha256>.json.gz。客户端仅接受该仓库中哈希匹配的 HTTPS 附件地址，沿用镜像重试和包校验；离线种子使用 file，不访问 Release。增量描述不含 url，继续从 Git raw 下载。新快照不再进入数据仓库 Git，已有历史不清理，data/trains 等文本历史及小增量仍会持续增长。
+
+发布命令 `npx tsx src/release-feed.ts` 会创建 Release 并提交推送，仅供已授权的正式发布流程运行。`npm run verify:feed-replay` 在隔离目录重放历史，不联网发布。

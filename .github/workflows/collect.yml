@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -82,22 +82,9 @@ jobs:
       - name: Publish retained history as a feed
         if: ${{ inputs.publish_existing }}
         run: npx tsx src/publish-existing.ts
-      - name: Commit immutable packs and manifest together
+      - name: Publish verified Release snapshot before committing feed
         if: success() && inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add data/ assets/station_gps.json
-          if ! git diff --cached --quiet; then
-            git commit -m "data: railway observation $(date -u +%FT%TZ)"
-            git push
-          fi
-          echo "FEED_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-      - name: Create downloadable historical snapshot
-        if: success() && inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
-        run: |
-          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("data/feed/manifest.json")); fs.copyFileSync("data/feed/"+m.snapshot.file,"snapshot/railway-history.json.gz"); fs.copyFileSync("data/feed/manifest.json","snapshot/manifest.json")'
-          gh release create "data-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" snapshot/railway-history.json.gz snapshot/manifest.json --target "$FEED_COMMIT" --title "Railway history ${GITHUB_RUN_ID}" --notes 'Complete retained history. Collection coverage is reported in manifest.metadata; partial observations never imply cancellation.'
+        run: npx tsx src/release-feed.ts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
