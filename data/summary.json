@@ -1,6 +1,6 @@
 {
-  "query_date": "2026-11-02",
-  "observed_date": "2026-11-02",
+  "query_date": "2026-11-03",
+  "observed_date": "2026-11-03",
   "test_mode": false,
   "replay": false,
   "stations": 3407,
@@ -9,9 +9,9 @@
     "renamed": [],
     "removed": []
   },
-  "enumerated_codes": 15548,
-  "enumerated_train_nos": 11955,
-  "details_ok": 11955,
+  "enumerated_codes": 15373,
+  "enumerated_train_nos": 11826,
+  "details_ok": 11826,
   "details_failed": 0,
   "details_unavailable": 0,
   "complete": true,
