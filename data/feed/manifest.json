@@ -1,10 +1,10 @@
 {
   "schema_version": 2,
-  "sequence": 3,
-  "generated_at": "2026-11-03T05:14:46.220Z",
+  "sequence": 4,
+  "generated_at": "2026-11-04T03:39:45.998Z",
   "metadata": {
-    "query_date": "2026-11-03",
-    "observed_date": "2026-11-03",
+    "query_date": "2026-11-04",
+    "observed_date": "2026-11-04",
     "test_mode": false,
     "replay": false,
     "stations": 3407,
@@ -13,9 +13,9 @@
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 15373,
-    "enumerated_train_nos": 11826,
-    "details_ok": 11826,
+    "enumerated_codes": 15447,
+    "enumerated_train_nos": 11877,
+    "details_ok": 11877,
     "details_failed": 0,
     "details_unavailable": 0,
     "complete": true,
@@ -25,15 +25,15 @@
   },
   "coverage": {
     "stations": 3407,
-    "trains": 16886,
-    "trains_with_timetable": 16886
+    "trains": 16926,
+    "trains_with_timetable": 16926
   },
   "snapshot": {
-    "sequence": 3,
-    "file": "packs/0f5dec55ad74e708b106692dc907abd2bb62ecb33d0b6807a6263c6b6c981957.json.gz",
-    "sha256": "0f5dec55ad74e708b106692dc907abd2bb62ecb33d0b6807a6263c6b6c981957",
-    "bytes": 7185704,
-    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-0f5dec55ad74e708b106692dc907abd2bb62ecb33d0b6807a6263c6b6c981957/0f5dec55ad74e708b106692dc907abd2bb62ecb33d0b6807a6263c6b6c981957.json.gz"
+    "sequence": 4,
+    "file": "packs/612e4aba2955b57b4b7200d2fc9897b58f0fed05730d9f9dc762844e2e4bbefa.json.gz",
+    "sha256": "612e4aba2955b57b4b7200d2fc9897b58f0fed05730d9f9dc762844e2e4bbefa",
+    "bytes": 7213587,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-612e4aba2955b57b4b7200d2fc9897b58f0fed05730d9f9dc762844e2e4bbefa/612e4aba2955b57b4b7200d2fc9897b58f0fed05730d9f9dc762844e2e4bbefa.json.gz"
   },
   "deltas": [
     {
@@ -47,6 +47,12 @@
       "file": "packs/fb75aa028e4a3da5ad8b4b326f3baed54089b0d3dd761a07181f52c6ef100cd4.json.gz",
       "sha256": "fb75aa028e4a3da5ad8b4b326f3baed54089b0d3dd761a07181f52c6ef100cd4",
       "bytes": 669693
+    },
+    {
+      "sequence": 4,
+      "file": "packs/995a9b5cda86e4d960c69c4a47ea9a91e8ef50f4f006b3a32bfc8c6324286f42.json.gz",
+      "sha256": "995a9b5cda86e4d960c69c4a47ea9a91e8ef50f4f006b3a32bfc8c6324286f42",
+      "bytes": 701044
     }
   ]
 }
