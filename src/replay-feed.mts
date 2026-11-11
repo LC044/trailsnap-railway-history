@@ -8,6 +8,7 @@ fs.mkdirSync(output,{recursive:true});
 process.env.DATA_DIR=fs.mkdtempSync(path.join(output,'data-'));
 process.env.SNAPSHOT_DIR=fs.mkdtempSync(path.join(output,'snapshots-'));
 const {publishFeed,snapshotPath}=await import('./history/feed');
+const {trainClass}=await import('./history/store');
 fs.mkdirSync(path.join(process.env.DATA_DIR,'stations'));
 fs.mkdirSync(path.join(process.env.DATA_DIR,'trains'));
 fs.mkdirSync(path.join(process.env.DATA_DIR,'feed'));
@@ -21,14 +22,14 @@ for(const sha of shas){
  const stations:any={}; const classes:Record<string,any[]>={};
  for(const item of snapshot.upserts){
   if(item.key.startsWith('station:')) stations[item.value.telecode]=item.value;
-  else {const cls=/^\d/.test(item.value.code)?'N':item.value.code[0]; (classes[cls]??=[]).push(item.value);}
+  else {const cls=trainClass(item.value.code); (classes[cls]??=[]).push(item.value);}
  }
  fs.writeFileSync(path.join(process.env.DATA_DIR,'stations/station_history.json'),JSON.stringify(stations));
  for(const name of fs.readdirSync(path.join(process.env.DATA_DIR,'trains'))) fs.writeFileSync(path.join(process.env.DATA_DIR,'trains',name),'');
  for(const [cls,trains] of Object.entries(classes)) fs.writeFileSync(path.join(process.env.DATA_DIR,'trains',`history_${cls}.jsonl`),trains.map(t=>JSON.stringify(t)).join('\n')+'\n');
  const current=publishFeed(old.metadata);
  fs.writeFileSync(path.join(output,`manifest-${current.sequence}.json`),JSON.stringify(current));
- const descriptor=current.deltas.at(-1)??current.snapshot;
+ const descriptor=current.compact_deltas.at(-1)??current.snapshot;
  const delta=JSON.parse(gunzipSync(fs.readFileSync(descriptor===current.snapshot?snapshotPath(descriptor):path.join(process.env.DATA_DIR,'feed',descriptor.file))).toString());
  rows.push({date:old.metadata.query_date??'2026-10-23',sha,old_snapshot:old.snapshot.file,sequence:current.sequence,v1_bytes:old.deltas.at(-1).bytes,v2_bytes:descriptor.bytes,versions:delta.train_versions.length,observations:delta.observations.length});
 }

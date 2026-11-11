@@ -6,12 +6,15 @@ import type { ITrain } from './services/train/model';
 import { ensureProxyPool, TaskScheduler } from './utils';
 import { PAGE_SIZE } from './constants';
 import { SNAPSHOT_DIR, ensureDirs, loadStationHistory, updateStationHistory, saveStationHistory,
-  buildNameToTelecode, loadClassHistory, saveClassHistory, saveSummary, saveSnapshot, type TrainHistoryEntry } from './history/store';
+  buildNameToTelecode, loadClassHistory, saveClassHistory, saveSummary, saveSnapshot,
+  trainClass, migrateNumericHistory, type TrainHistoryEntry } from './history/store';
 import { makeVersion, mergeTrain } from './history/merge';
 import { publishFeed } from './history/feed';
 import { enumerateWithCheckpoint } from './enumeration';
 
 const sleep = (ms:number) => new Promise(r=>setTimeout(r,ms));
+export const enumerationRoots = () => ['G','D','C','K','Z','T','S','Y','L','A','N','V','']
+  .flatMap(c=>Array.from({length:9},(_,i)=>`${c}${i+1}`));
 export async function retry<T>(task:()=>Promise<T>, valid:(v:T)=>boolean, attempts=4, label='Request', pause=sleep):Promise<T> {
   let reason='invalid response';
   for (let i=0;i<attempts;i++) {
@@ -42,6 +45,7 @@ export async function collect() {
   const limited=Number(process.env.TEST_LIMIT||0);
   const testMode=Boolean(process.env.TEST_PREFIX||limited);
   if(testMode && !process.env.DATA_DIR) throw new Error('Test runs require isolated DATA_DIR');
+  migrateNumericHistory();
   const readSnapshot=(name:string)=>JSON.parse(fs.readFileSync(path.join(replay!,`${name}_${process.env.REPLAY_DATE||observed}.json`),'utf8'));
   if(!replay) await ensureProxyPool();
   const stations=(replay?readSnapshot('stations'):await retry(getStationNames,s=>s.length>1000))
@@ -63,8 +67,7 @@ export async function collect() {
       const rsp=await retry(()=>queryTrainListByKeywordAndDate(prefix,date.replaceAll('-','')),r=>r.success&&Array.isArray(r.data),4,`list ${prefix} (${date})`);
       console.log(`[list] ${prefix}: ${rsp.data!.length}`); return rsp.data!;
     };
-    const roots=process.env.TEST_PREFIX?[process.env.TEST_PREFIX]:
-      ['G','D','C','K','Z','T','S','Y','L','A',''].flatMap(c=>Array.from({length:9},(_,i)=>`${c}${i+1}`));
+    const roots=process.env.TEST_PREFIX?[process.env.TEST_PREFIX]:enumerationRoots();
     const found=await enumerateWithCheckpoint(roots,date,query,path.join(SNAPSHOT_DIR,`enumeration_${date}.json`));
     trains=[...found.values()];
   }
@@ -101,7 +104,7 @@ export async function collect() {
       d:i===rawStops.length-1||!/^\d\d:\d\d$/.test(s.start_time)?null:s.start_time,
       dd:Number(s.arrive_day_diff||0),raw:s}));
     for(const code of codes) {
-      const cls=/^\d/.test(code)?'N':code[0];
+      const cls=trainClass(code);
       if(!classes.has(cls)) classes.set(cls,loadClassHistory(cls));
       const entries=classes.get(cls)!;const entry=entries.get(code)??{code,versions:[]};
       const listDate=trains.find(t=>t.train_no===detail.train_no)?.date??'';
@@ -116,7 +119,7 @@ export async function collect() {
   for (const train of trains) {
     if (detailNos.has(train.train_no) || (testMode && !replay)) continue;
     for (const code of train.station_train_code.split('/')) {
-      const cls = /^\d/.test(code) ? 'N' : code[0];
+      const cls = trainClass(code);
       if (!classes.has(cls)) classes.set(cls,loadClassHistory(cls));
       const entries = classes.get(cls)!;
       const entry = entries.get(code) ?? {code,versions:[]};

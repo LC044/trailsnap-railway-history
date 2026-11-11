@@ -37,6 +37,11 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - run: npm test
       - run: npm run typecheck
+      - name: Restore verified collector state from Release
+        if: inputs.test_prefix == '' && (inputs.test_limit == '' || inputs.test_limit == '0')
+        run: npx tsx src/restore-state.ts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Identify dated checkpoint scope
         id: checkpoint-key
         if: ${{ !inputs.publish_existing }}

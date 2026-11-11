@@ -5,7 +5,7 @@ import crypto from "crypto";
 /**
  * 历史数据存储层
  *
- * 数据布局（全部增量提交到 git）：
+ * 数据布局（车站、车次及发布指纹保存在 Release 采集状态包，运行前恢复）：
  * data/
  *   stations/station_history.json   # telecode -> 车站档案（含名称变迁 epochs、启用/停用状态）
  *   mileage/segments.json           # "teleA|teleB" -> 相邻站间里程（物理属性，不随调图变化）
@@ -231,6 +231,28 @@ export const versionHash = (no: string, f: string, t: string, stops: StopRecord[
 export const classFile = (cls: string): string =>
   path.join(DATA_DIR, "trains", `history_${cls}.jsonl`);
 
+export const trainClass = (code: string): string => /^\d/.test(code) ? 'NUMERIC' : code[0];
+
+/** Old history_N was the numeric bucket. Split it before collecting real N trains. */
+export function migrateNumericHistory() {
+  const legacy = loadClassHistory('N');
+  const numeric = loadClassHistory('NUMERIC');
+  let changed = false;
+  for (const [code, entry] of legacy) {
+    if (!/^\d/.test(code)) continue;
+    const existing = numeric.get(code);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(entry)) {
+      throw new Error(`Conflicting numeric history during class migration: ${code}`);
+    }
+    numeric.set(code, entry); legacy.delete(code); changed = true;
+  }
+  if (changed) {
+    // Write the destination first. An interrupted migration can retry safely.
+    saveClassHistory('NUMERIC', numeric);
+    saveClassHistory('N', legacy);
+  }
+}
+
 export const loadClassHistory = (cls: string): Map<string, TrainHistoryEntry> => {
   const map = new Map<string, TrainHistoryEntry>();
   const file = classFile(cls);
@@ -249,7 +271,8 @@ export const saveClassHistory = (cls: string, entries: Map<string, TrainHistoryE
     a.code.localeCompare(b.code, void 0, { numeric: true }),
   );
   const content = sorted.map((e) => JSON.stringify(e)).join("\n") + "\n";
-  fs.writeFileSync(classFile(cls), content, "utf-8");
+  fs.writeFileSync(classFile(cls) + '.tmp', content, "utf-8");
+  fs.renameSync(classFile(cls) + '.tmp', classFile(cls));
 };
 
 // ------------------------------ 运行元信息 ------------------------------

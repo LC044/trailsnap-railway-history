@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "check-proxies": "tsx src/validate_proxies.ts",
-    "test": "tsx --test src/history/history.test.mts",
+    "test": "tsx --test src/history/history.test.mts src/history/collector-state.test.mts",
     "typecheck": "tsc --noEmit",
-    "verify:feed-replay": "tsx src/replay-feed.mts"
+    "verify:feed-replay": "tsx src/replay-feed.mts",
+    "verify:compact": "tsx src/verify-compact.mts"
   },
   "keywords": [],
   "author": "Herbert He<herbert.he0229@gmail.com>",

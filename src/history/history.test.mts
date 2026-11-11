@@ -11,7 +11,7 @@ process.env.SNAPSHOT_DIR=fs.mkdtempSync(path.join(os.tmpdir(),'railway-snapshot-
 const store=await import('./store');
 const { mergeTrain, makeVersion }=await import('./merge');
 const { publishFeed, snapshotPath, snapshotTag, sha256 }=await import('./feed');
-const { enumerate, retry }=await import('../collect');
+const { enumerate, retry, enumerationRoots }=await import('../collect');
 const { enumerateWithCheckpoint }=await import('../enumeration');
 const { fetchWithFallback, describeNetworkError }=await import('../utils/transport');
 
@@ -86,6 +86,48 @@ test('station rename, metadata change, disappearance and reactivation preserve a
   assert.equal(history.AAA.status_history?.length,3);
 });
 
+test('date-only station updates use compact dates; names and coordinates still send full records',()=>{
+  store.ensureDirs();
+  const feedDir=path.join(store.DATA_DIR,'feed');
+  fs.rmSync(feedDir,{recursive:true,force:true});
+  fs.mkdirSync(feedDir,{recursive:true});
+  const history:StationHistory={};
+  const station={name:'站甲',tele_code:'AAA',pinyin:'a',pinyin_short:'a',city:'甲',gps:{latitude:30,longitude:120}};
+  store.updateStationHistory(history,[station],'2026-11-10');store.saveStationHistory(history);
+  const first=publishFeed({});
+  store.updateStationHistory(history,[station],'2026-11-11');store.saveStationHistory(history);
+  const second=publishFeed({});
+  const readDelta=(manifest:any)=>JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,manifest.compact_deltas.at(-1).file))).toString());
+  const delta=readDelta(second);
+  assert.deepEqual(delta.stations,[]);
+  assert.deepEqual(delta.station_dates,[{telecode:'AAA',last_seen:'2026-11-11',name_last:['2026-11-11'],version_last:['2026-11-11']}]);
+  assert.deepEqual(second.deltas,[], 'legacy clients must fall back to the full snapshot');
+  assert.equal(second.station_dates_version,1);
+  assert.equal(publishFeed({}).sequence,second.sequence);
+  store.updateStationHistory(history,[{...station,gps:{latitude:31,longitude:120}}],'2026-11-12');store.saveStationHistory(history);
+  const third=publishFeed({});
+  assert.equal(readDelta(third).stations.length,1);assert.deepEqual(readDelta(third).station_dates,[]);
+  store.updateStationHistory(history,[{...station,name:'新站'}],'2026-11-13');store.saveStationHistory(history);
+  assert.equal(readDelta(publishFeed({})).stations[0].names.at(-1).name,'新站');
+  const full=JSON.parse(gunzipSync(fs.readFileSync(snapshotPath(first.snapshot))).toString());
+  assert.equal(full.stations[0].last_seen,'2026-11-10');
+  fs.rmSync(feedDir,{recursive:true,force:true});
+});
+
+test('N/V roots and numeric class migration keep real N trains and all old numeric dates',()=>{
+  store.ensureDirs();
+  assert.ok(enumerationRoots().includes('N1') && enumerationRoots().includes('V9') && enumerationRoots().includes('1'));
+  assert.equal(store.trainClass('1234'),'NUMERIC');assert.equal(store.trainClass('N123'),'N');assert.equal(store.trainClass('V123'),'V');
+  const v=makeVersion('n','A','B',[],'2026-11-10',{});
+  const old={code:'1234',versions:[v]};const real={code:'N123',versions:[v]};
+  store.saveClassHistory('N',new Map([['1234',old],['N123',real]]));
+  store.migrateNumericHistory();store.migrateNumericHistory();
+  assert.deepEqual([...store.loadClassHistory('N').keys()],['N123']);
+  assert.deepEqual(store.loadClassHistory('NUMERIC').get('1234'),old);
+  // Keep the shared fixtures isolated from following history/publication tests.
+  fs.unlinkSync(store.classFile('N'));fs.unlinkSync(store.classFile('NUMERIC'));
+});
+
 test('train A-B-A and out-of-order observations retain exact operating dates',()=>{
   const entry:TrainHistoryEntry={code:'G1',versions:[]};
   const a=makeVersion('no','A','B',[{n:'A',c:'AAA',a:null,d:'08:00',dd:0}],'2026-10-01',{});
@@ -142,7 +184,7 @@ test('v2 date-only deltas omit timetable content and migrate v1 sequence',()=>{
   mergeTrain(entry,v,'2026-10-02');
   store.saveClassHistory('G',new Map([['G1',entry]]));
   const second=publishFeed({});
-  const delta=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,second.deltas.at(-1)!.file))).toString());
+  const delta=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,second.compact_deltas.at(-1)!.file))).toString());
   assert.deepEqual(delta.train_versions,[]);
   assert.deepEqual(delta.observations[0].dates,['2026-10-02']);
   assert.equal(publishFeed({}).sequence,2);
@@ -150,12 +192,12 @@ test('v2 date-only deltas omit timetable content and migrate v1 sequence',()=>{
   mergeTrain(entry,b,'2026-10-03');
   store.saveClassHistory('G',new Map([['G1',entry]]));
   const third=publishFeed({});
-  const changed=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,third.deltas.at(-1)!.file))).toString());
+  const changed=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,third.compact_deltas.at(-1)!.file))).toString());
   assert.equal(changed.train_versions.length,1);
   mergeTrain(entry,v,'2026-10-04');
   store.saveClassHistory('G',new Map([['G1',entry]]));
   const fourth=publishFeed({});
-  const reverted=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,fourth.deltas.at(-1)!.file))).toString());
+  const reverted=JSON.parse(gunzipSync(fs.readFileSync(path.join(feedDir,fourth.compact_deltas.at(-1)!.file))).toString());
   assert.deepEqual(reverted.train_versions,[]);
   assert.equal(reverted.observations[0].hash,v.h);
   assert.deepEqual(reverted.observations[0].dates,['2026-10-04']);
@@ -201,6 +243,8 @@ test('retained history publication adds field snapshots without changing observa
 
 test('Release bytes are verified before git; upload failures and retries leave the old manifest unexposed',async()=>{
   const {releaseFeed}=await import('../release-feed');
+  store.saveStationHistory({});
+  fs.writeFileSync(path.join(store.DATA_DIR,'feed/fingerprints.json'),JSON.stringify({schema_version:2,stations:{},versions:{}}));
   const raw=gzipSync(JSON.stringify({schema_version:2,sequence:10,full:true,stations:[],train_versions:[],observations:[]}));
   const hash=sha256(raw);
   const descriptor={sequence:10,file:`packs/${hash}.json.gz`,sha256:hash,bytes:raw.length,
@@ -210,13 +254,18 @@ test('Release bytes are verified before git; upload failures and retries leave t
   fs.writeFileSync(path.join(store.DATA_DIR,'feed/manifest.json'),JSON.stringify({schema_version:2,sequence:10,snapshot:descriptor,deltas:[]}));
   const calls:string[]=[];
   let exists=false; let uploaded=false; let failUpload=true; let corrupt=false; let draft=false; let fullStaged=false;
+  const stateAssets=new Set<string>();
   const run=(program:string,args:string[])=>{
     calls.push([program,...args.slice(0,3)].join(' '));
     if(program==='gh') {
-      if(args[1]==='view') {if(!exists) throw new Error('not found');return JSON.stringify({isDraft:draft,assets:uploaded?[{name:`${hash}.json.gz`}]:[]});}
+      if(args[1]==='view') {if(!exists) throw new Error('not found');return JSON.stringify({isDraft:draft,assets:[...(uploaded?[{name:`${hash}.json.gz`}]:[]),...Array.from(stateAssets,name=>({name}))]});}
       if(args[1]==='create') {exists=true;if(failUpload) throw new Error('upload failed');uploaded=true;}
-      if(args[1]==='upload') {if(failUpload) throw new Error('upload failed');uploaded=true;}
-      if(args[1]==='download') fs.writeFileSync(path.join(args[args.indexOf('--dir')+1],`${hash}.json.gz`),corrupt?Buffer.from('corrupt'):raw);
+      if(args[1]==='upload') {if(failUpload) throw new Error('upload failed');if(path.basename(args[3]).startsWith('collector-state-'))stateAssets.add(path.basename(args[3]));else uploaded=true;}
+      if(args[1]==='download') {
+        const file=args[args.indexOf('--pattern')+1];
+        fs.writeFileSync(path.join(args[args.indexOf('--dir')+1],file),corrupt?Buffer.from('corrupt'):
+          file.startsWith('collector-state-')?fs.readFileSync(path.join(store.SNAPSHOT_DIR,file)):raw);
+      }
     }
     if(program==='git' && args[0]==='rev-parse') return 'a'.repeat(40);
     if(program==='git' && args.includes('--diff-filter=AM')) return fullStaged?snapshotPath(descriptor):'';

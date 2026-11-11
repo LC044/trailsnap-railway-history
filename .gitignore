@@ -140,10 +140,15 @@ vite.config.ts.timestamp-*
 
 __test__
 
-# 历史采集产物：data/ 进 git，snapshot/ 不进
+# 历史采集产物：Git 保留 feed/清单、增量及摘要，完整采集状态放 Release
 dist/
 dist-test/
 snapshot/
+
+# Collector state is restored from a verified Release checkpoint before collection.
+data/stations/
+data/trains/
+data/feed/fingerprints.json
 
 # 日志
 log_*.txt

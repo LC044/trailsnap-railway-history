@@ -7,17 +7,22 @@
 ```powershell
 npm ci
 npm test
+npx tsx src/restore-state.ts
 npm run dev
 ```
 
 正式 GitHub Action 每天北京时间 03:00 采集。新字段原始值随版本保留；历史 JSON 损坏会中止运行，不会当空库覆盖。车次以查询日期记录 dates（实际观测运行日），不是以采集日推断有效期。旧名称和不再出现在新车站表中的记录均保留。
 
-枚举包括 G/D/C/K/Z/T/S/Y/L/A 和纯数字入口，满 200 条会递归分拆；同一内部号的详情只查一次。请求失败在调用方重试并接收返回值。详情失败不推断停运，保留列表起终站；无时刻表的实体 s=[]。单日 checkpoint 在 snapshot/ 下，重新运行同一天可继续。
+正式采集前通过已认证的 GitHub CLI 恢复 Release 采集状态。恢复命令会替换本地车站、车次和指纹文件，应在开始一次新采集前执行；不要在尚未发布的采集中途执行。下载失败、序号不一致、校验失败或文件缺失都会中止，不会改用空库继续采集。测试模式使用隔离目录，不恢复正式状态。
+
+枚举包括 G/D/C/K/Z/T/S/Y/L/A/N/V 和纯数字入口，满 200 条会递归分拆；同一内部号的详情只查一次。N/V 仅按公开车次前缀接入，不根据字母猜测车型。纯数字车次保存到 `history_NUMERIC.jsonl`；首次正式采集将旧 `history_N.jsonl` 中的纯数字记录原样迁移，真正 N 字头车次保留在 N 类。迁移先写目标、再移除源记录，冲突中止且不丢弃历史。请求失败在调用方重试并接收返回值。详情失败不推断停运，保留列表起终站；无时刻表的实体 s=[]。单日 checkpoint 在 snapshot/ 下，重新运行同一天可继续。
 
 ## 数据文件与客户端协议
 
-- data/stations/station_history.json：电报码为键，names 名称观测、versions 原字段/GPS 快照、status_history 状态观测。
-- data/trains/history_*.jsonl：车次与所有内容版本；每个版本 dates 为已观测日期，fd/ld 只是日期边界，不代表边界内每天都验证过。
+- data/stations/station_history.json：恢复后的本地采集状态，不再随日常提交进入 Git。电报码为键，names 名称观测、versions 原字段/GPS 快照、status_history 状态观测。
+- data/trains/history_*.jsonl：恢复后的本地采集状态，不再随日常提交进入 Git。包含车次与所有内容版本；每个版本 dates 为已观测日期，fd/ld 只是日期边界，不代表边界内每天都验证过。
+- data/feed/fingerprints.json：恢复后的本地发布指纹，不再随日常提交进入 Git。
+- data/collector-state.json：Git 中的小型采集状态指针，绑定 feed 序号、全量快照哈希和 Release 状态包的 SHA-256/大小。仅供采集器使用，客户端不读取。
 - data/feed/manifest.json：协议版本、单调序号、覆盖说明、全历史 snapshot 及全部 delta 描述。
 - data/feed/packs/<sha256>.json.gz：Git 中只新增不可变 delta。首次/跨协议/缺包时从 manifest.snapshot.url 下载 Release 全历史快照；不需要克隆仓库。已有历史包保留，不重写 Git 历史。
 - snapshot/feed/packs/<sha256>.json.gz：新全量快照的本地暂存位置，已被 Git 忽略，仅上传 Release 附件。
@@ -26,7 +31,13 @@ npm run dev
 
 当前只发布 v2（schema_version=2），仍使用 data/feed/ 地址，停止 v1 兼容更新。包包含 sequence、full、stations、train_versions、observations。stations 是站点实体；train_versions 为 {code,value}，value 保留 h/no/f/t/s/raw 等内容，不含 dates/fd/ld/observed_at；observations 为 {code,hash,dates,observed_at?}，只发送新观测日期。无时刻表变化时不重发内容，A→B→A 只追加 A 的观测日期。snapshot 包含全部内容与日期，delta 只含新增内容、日期及变化站点。manifest 描述包含 SHA-256 和压缩字节数。版本内容不可变，版本或观测被删除时拒绝发布。
 
+车站精简增量使用 `station_dates_version=1` 和独立的 `compact_deltas` 描述符列表。精简包新增 `station_dates`，每条只含 `telecode`、`last_seen`、按既有名称顺序排列的 `name_last`、按既有字段版本顺序排列的 `version_last`；名称、坐标、状态、原始字段或版本结构变化仍在 `stations` 发送完整档案。完整快照始终保留全部车站及日期。新客户端只在识别该扩展版本时使用 `compact_deltas`；旧客户端的 `deltas` 列表不会包含精简包，链条缺口使原有 v2 同步逻辑自动回退 Release 全量快照，避免静默忽略日期后推进游标。
+
+可先发布采集端，再升级行影集；未升级但已支持 v2 的客户端仍可正确同步，代价是每次有新序号时下载完整快照（目前约 7.4 MB），升级后自动恢复精简增量，无需清库。行影集后端/桌面端升级才会使用精简日期；V 字头 OCR 与 N/V 混合车次识别还需部署新版 AI 服务。网页的车票生成输入也已放开 N/V。v1-only 客户端不在本次兼容范围，继续需要升级。停止发布后回滚采集器时，应恢复原有完整车站增量，不可把精简包放入旧 `deltas` 列表。
+
 Actions 使用浅克隆（fetch-depth=1）。先以完整 SHA-256 命名的不可变 tag `snapshot-v2-<sha256>` 上传 Release 附件 `<sha256>.json.gz` 和 manifest.json，再下载附件核对大小、SHA-256、协议和序号，成功后才提交增量和清单并推送。失败不会推送悬空清单；已有 Release 可复用，缺附件可补传，损坏附件拒绝覆盖和发布。首次 v2 发布不生成冗余的全量 delta 1；重复发布不提升数据序号。测试模式不推送或发布；失败时仅上传诊断 artifact。不要在正式 data/ 上试跑或与其他采集进程同时写入。
+
+同一 Release 还包含 `collector-state-<sha256>.json.gz`，逐字保留车站档案、原始车次历史与发布指纹。发布器上传并重新下载验证状态包、核对全部指纹后，才更新 `data/collector-state.json` 并从 Git 索引移除上述原始状态文件。首次迁移利用当前 Git 保留的完整状态，不需要下载旧 Git 历史；该次数据提交会出现一次性删除大量原始状态文件，它们已存入 Release，历史提交也全部保留。随后日常数据提交仅更新 manifest、状态指针、小摘要以及新增的不可变增量包，不再每天重写成千上万行完整历史。重复发布不产生空提交。
 
 ## 参数
 
@@ -68,6 +79,8 @@ Node fetch 在某些运行器与官方服务器连接失败时，GET 请求自�
 
 ## Release 快照与客户端
 
-快照描述保留 file=packs/<sha256>.json.gz 作为离线种子的本地路径，并新增 url=https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-<sha256>/<sha256>.json.gz。客户端仅接受该仓库中哈希匹配的 HTTPS 附件地址，沿用镜像重试和包校验；离线种子使用 file，不访问 Release。增量描述不含 url，继续从 Git raw 下载。新快照不再进入数据仓库 Git，已有历史不清理，data/trains 等文本历史及小增量仍会持续增长。
+快照描述保留 file=packs/<sha256>.json.gz 作为离线种子的本地路径，并新增 url=https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-<sha256>/<sha256>.json.gz。客户端仅接受该仓库中哈希匹配的 HTTPS 附件地址，沿用镜像重试和包校验；离线种子使用 file，不访问 Release。增量描述不含 url，继续从 Git raw 下载。新快照及采集状态均保存在 Release，Git 仅持续新增小增量和更新清单/摘要；已有 Git 历史不清理。单独调整采集状态存储无需客户端升级；新增车站精简日期扩展需要新版客户端才能节省下载量，旧 v2 客户端回退完整快照。
+
+`npm run verify:compact` 在忽略的 `snapshot/compact-replay-*` 下离线重放 `origin/main~1` 与 `origin/main` 的保留历史（可用 `COMPACT_REPLAY_REF` 指定末次修订），生成包、清单和 `report.json`。不写正式 data/，不联网发布；需要这两个旧修订仍包含原始状态。首次接入无内容指纹时保守发送完整车站；通过一次无变化的 `publish_existing` 可预先建立内容指纹而不增加观测序号。
 
 发布命令 `npx tsx src/release-feed.ts` 会创建 Release 并提交推送，仅供已授权的正式发布流程运行。`npm run verify:feed-replay` 在隔离目录重放历史，不联网发布。

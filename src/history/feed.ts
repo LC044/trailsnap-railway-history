@@ -8,6 +8,12 @@ export const snapshotPath = (descriptor: {file: string}) => path.join(SNAPSHOT_D
 export const snapshotTag = (hash: string) => `snapshot-v2-${hash}`;
 
 export const sha256 = (value: string | Buffer) => crypto.createHash('sha256').update(value).digest('hex');
+export const stationContentHash = (entity: any) => {
+  const {last_seen, names, versions, ...content} = entity;
+  return sha256(JSON.stringify({...content,
+    names: names.map(({last, ...epoch}: any) => epoch),
+    ...(versions ? {versions: versions.map(({last, ...version}: any) => version)} : {})}));
+};
 export const readEntities = () => {
   const entities: Record<string, any> = {};
   for (const [code, station] of Object.entries(loadStationHistory())) entities[`station:${code}`] = station;
@@ -31,15 +37,22 @@ export function publishFeed(metadata: Record<string, unknown>) {
   const saved = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : null;
   if (previous && saved?.schema_version !== 2) throw new Error('Missing v2 publication state');
   const prior = previous ? saved : {stations: {}, versions: {}};
-  const state: any = {schema_version: 2, stations: {}, versions: {}};
+  const state: any = {schema_version: 2, stations: {}, station_contents: {}, versions: {}};
   const snapshot: any = {stations: [], train_versions: [], observations: []};
-  const delta: any = {stations: [], train_versions: [], observations: []};
+  const delta: any = {stations: [], station_dates: [], train_versions: [], observations: []};
   const entities = readEntities();
   for (const [key, entity] of Object.entries(entities)) {
     if (key.startsWith('station:')) {
       state.stations[key] = sha256(JSON.stringify(entity));
+      state.station_contents[key] = stationContentHash(entity);
       snapshot.stations.push(entity);
-      if (state.stations[key] !== prior.stations[key]) delta.stations.push(entity);
+      if (state.stations[key] !== prior.stations[key]) {
+        if (state.station_contents[key] === prior.station_contents?.[key]) {
+          delta.station_dates.push({telecode: entity.telecode, last_seen: entity.last_seen,
+            name_last: entity.names.map((epoch: any) => epoch.last),
+            version_last: (entity.versions ?? []).map((version: any) => version.last)});
+        } else delta.stations.push(entity);
+      }
       continue;
     }
     for (const version of entity.versions) {
@@ -67,6 +80,10 @@ export function publishFeed(metadata: Record<string, unknown>) {
     if (!(key in state.versions)) throw new Error(`Refusing history deletion: ${key}`);
   }
   const changed = Object.values(delta).some((rows: any) => rows.length);
+  // Persist content fingerprints even for a no-op, so a legacy checkpoint can
+  // adopt compact dates without inventing another observation/publication.
+  fs.writeFileSync(statePath + '.tmp', JSON.stringify(state, null, 2));
+  fs.renameSync(statePath + '.tmp', statePath);
   if (previous && !changed && previous.snapshot.url) return previous;
   // Moving an existing v2 snapshot to Release does not invent a data update.
   const sequence = previous && !changed ? previous.sequence : (previous?.sequence ?? 0) + 1;
@@ -86,8 +103,13 @@ export function publishFeed(metadata: Record<string, unknown>) {
   const trains = Object.entries(entities).filter(([key]) => key.startsWith('train:'));
   const coverage = {stations: snapshot.stations.length, trains: trains.length,
     trains_with_timetable: trains.filter(([,v]) => v.versions.some((version: any) => version.s.length)).length};
-  const manifest = {schema_version: 2, sequence, generated_at: new Date().toISOString(), metadata,
-    coverage, snapshot: full, deltas: [...(previous?.deltas ?? []).filter((d: any) => d.sequence > 1), ...(incremental ? [incremental] : [])]};
+  const manifest = {schema_version: 2, station_dates_version: 1, sequence, generated_at: new Date().toISOString(), metadata,
+    coverage, snapshot: full,
+    // Legacy clients must never see a compact pack in their incremental chain.
+    // A gap makes their existing v2 sync fall back to the complete snapshot.
+    deltas: previous?.deltas ?? [],
+    compact_deltas: [...(previous?.compact_deltas ?? previous?.deltas ?? []).filter((d: any) => d.sequence > 1),
+      ...(incremental ? [incremental] : [])]};
   for (const [file, value] of [[statePath, state], [manifestPath, manifest]] as const) {
     fs.writeFileSync(file + '.tmp', JSON.stringify(value, null, 2));
     fs.renameSync(file + '.tmp', file);

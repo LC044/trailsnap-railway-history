@@ -5,6 +5,7 @@ import {pathToFileURL} from 'node:url';
 import {gunzipSync} from 'node:zlib';
 import {DATA_DIR, SNAPSHOT_DIR} from './history/store';
 import {sha256, snapshotPath, snapshotTag} from './history/feed';
+import {prepareCollectorState, verifyCollectorState, statePointer} from './history/collector-state';
 
 type Command = (program: string, args: string[]) => string;
 const execute: Command = (program, args) => execFileSync(program, args, {encoding:'utf8'});
@@ -44,9 +45,21 @@ export function releaseFeed(run: Command = execute) {
   // Verify bytes served by GitHub, including when recovering an existing release.
   run('gh',['release','download',tag,'--pattern',asset,'--dir',verification]);
   verify(path.join(verification, asset));
+  // Keep collector internals outside Git too. Verify the served checkpoint before
+  // publishing its pointer or untracking the legacy files on the first migration.
+  const state = prepareCollectorState(manifest);
+  if (!release || !release.assets.some((item: any) => item.name === state.descriptor.file)) {
+    run('gh', ['release', 'upload', tag, state.localPath]);
+  }
+  run('gh', ['release', 'download', tag, '--pattern', state.descriptor.file, '--dir', verification]);
+  verifyCollectorState(fs.readFileSync(path.join(verification, state.descriptor.file)), state.descriptor, manifest);
   if (release?.isDraft) run('gh',['release','edit',tag,'--draft=false']);
+  fs.writeFileSync(statePointer + '.tmp', JSON.stringify(state.descriptor, null, 2) + '\n');
+  fs.renameSync(statePointer + '.tmp', statePointer);
   run('git',['config','user.name','github-actions[bot]']);
   run('git',['config','user.email','github-actions[bot]@users.noreply.github.com']);
+  run('git',['rm','--cached','-r','--ignore-unmatch','--',
+    'data/stations/', 'data/trains/', 'data/feed/fingerprints.json']);
   run('git',['add','data/','assets/station_gps.json']);
   const packs = run('git',['diff','--cached','--name-only','--diff-filter=AM','--','data/feed/packs/']).trim().split('\n').filter(Boolean);
   for (const file of packs) {
