@@ -1,10 +1,11 @@
 {
   "schema_version": 2,
-  "sequence": 11,
-  "generated_at": "2026-11-11T03:45:13.342Z",
+  "station_dates_version": 1,
+  "sequence": 12,
+  "generated_at": "2026-11-12T05:05:23.492Z",
   "metadata": {
-    "query_date": "2026-11-11",
-    "observed_date": "2026-11-11",
+    "query_date": "2026-11-12",
+    "observed_date": "2026-11-12",
     "test_mode": false,
     "replay": false,
     "stations": 3407,
@@ -13,30 +14,30 @@
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 15625,
-    "enumerated_train_nos": 12025,
-    "details_ok": 12023,
+    "enumerated_codes": 15576,
+    "enumerated_train_nos": 11977,
+    "details_ok": 11975,
     "details_failed": 2,
     "details_unavailable": 2,
     "complete": false,
     "gps_stations": 3410,
     "gps_source": "bundled seed (not freshly fetched)",
     "failed_train_nos": [
-      "48000G746104",
-      "38000C288702"
+      "88000075830P",
+      "38000G261804"
     ]
   },
   "coverage": {
     "stations": 3407,
-    "trains": 17238,
-    "trains_with_timetable": 17238
+    "trains": 17274,
+    "trains_with_timetable": 17274
   },
   "snapshot": {
-    "sequence": 11,
-    "file": "packs/e5dca4a3832a1cf510dbbe1ce6de0271f90a7207887f32f792ec110080855edd.json.gz",
-    "sha256": "e5dca4a3832a1cf510dbbe1ce6de0271f90a7207887f32f792ec110080855edd",
-    "bytes": 7377490,
-    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-e5dca4a3832a1cf510dbbe1ce6de0271f90a7207887f32f792ec110080855edd/e5dca4a3832a1cf510dbbe1ce6de0271f90a7207887f32f792ec110080855edd.json.gz"
+    "sequence": 12,
+    "file": "packs/c96ac4e4d091cd4cd08ff296706a3ee985c43b2914ce4f58e6493ae07fa343cc.json.gz",
+    "sha256": "c96ac4e4d091cd4cd08ff296706a3ee985c43b2914ce4f58e6493ae07fa343cc",
+    "bytes": 7398856,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-c96ac4e4d091cd4cd08ff296706a3ee985c43b2914ce4f58e6493ae07fa343cc/c96ac4e4d091cd4cd08ff296706a3ee985c43b2914ce4f58e6493ae07fa343cc.json.gz"
   },
   "deltas": [
     {
@@ -98,6 +99,74 @@
       "file": "packs/8f70c3826a877d246ee3914fe8fd21309b946a7e0321f6780323ac22533a429a.json.gz",
       "sha256": "8f70c3826a877d246ee3914fe8fd21309b946a7e0321f6780323ac22533a429a",
       "bytes": 669753
+    }
+  ],
+  "compact_deltas": [
+    {
+      "sequence": 2,
+      "file": "packs/25093d7dcda9163c266bfb01382e4962f0af0ee131ad75ab21f7bd100cca25f7.json.gz",
+      "sha256": "25093d7dcda9163c266bfb01382e4962f0af0ee131ad75ab21f7bd100cca25f7",
+      "bytes": 694074
+    },
+    {
+      "sequence": 3,
+      "file": "packs/fb75aa028e4a3da5ad8b4b326f3baed54089b0d3dd761a07181f52c6ef100cd4.json.gz",
+      "sha256": "fb75aa028e4a3da5ad8b4b326f3baed54089b0d3dd761a07181f52c6ef100cd4",
+      "bytes": 669693
+    },
+    {
+      "sequence": 4,
+      "file": "packs/995a9b5cda86e4d960c69c4a47ea9a91e8ef50f4f006b3a32bfc8c6324286f42.json.gz",
+      "sha256": "995a9b5cda86e4d960c69c4a47ea9a91e8ef50f4f006b3a32bfc8c6324286f42",
+      "bytes": 701044
+    },
+    {
+      "sequence": 5,
+      "file": "packs/76a2b1345817e2a88e4f2e20db2831b1a35e906b506cb445cf58990b46df3834.json.gz",
+      "sha256": "76a2b1345817e2a88e4f2e20db2831b1a35e906b506cb445cf58990b46df3834",
+      "bytes": 666868
+    },
+    {
+      "sequence": 6,
+      "file": "packs/27b7493d31dd1b4a26fef3792ca43a331817ab62f3851697787967d38f95c33f.json.gz",
+      "sha256": "27b7493d31dd1b4a26fef3792ca43a331817ab62f3851697787967d38f95c33f",
+      "bytes": 710269
+    },
+    {
+      "sequence": 7,
+      "file": "packs/bf659f2c369bac6022fd41f275e04064bf03c4b46617118473c87bc630fb7b99.json.gz",
+      "sha256": "bf659f2c369bac6022fd41f275e04064bf03c4b46617118473c87bc630fb7b99",
+      "bytes": 673270
+    },
+    {
+      "sequence": 8,
+      "file": "packs/7bf6f737bb4b6742116d8ced2dc81fc9b0b689d06878881865fd4bb64add0d25.json.gz",
+      "sha256": "7bf6f737bb4b6742116d8ced2dc81fc9b0b689d06878881865fd4bb64add0d25",
+      "bytes": 671511
+    },
+    {
+      "sequence": 9,
+      "file": "packs/dfd0cdb4e7ce229b314c9fcc0708ae865d8058379b0d767833b6a3deacc404f8.json.gz",
+      "sha256": "dfd0cdb4e7ce229b314c9fcc0708ae865d8058379b0d767833b6a3deacc404f8",
+      "bytes": 664996
+    },
+    {
+      "sequence": 10,
+      "file": "packs/b16933efc960a34b749b74634f0051b0ae83ed7bdca5add97f828a059e3f3423.json.gz",
+      "sha256": "b16933efc960a34b749b74634f0051b0ae83ed7bdca5add97f828a059e3f3423",
+      "bytes": 694010
+    },
+    {
+      "sequence": 11,
+      "file": "packs/8f70c3826a877d246ee3914fe8fd21309b946a7e0321f6780323ac22533a429a.json.gz",
+      "sha256": "8f70c3826a877d246ee3914fe8fd21309b946a7e0321f6780323ac22533a429a",
+      "bytes": 669753
+    },
+    {
+      "sequence": 12,
+      "file": "packs/d187f391d2a5ae875ec3bc015595b5dfd94028d3a57a90a8e7c05400506857bc.json.gz",
+      "sha256": "d187f391d2a5ae875ec3bc015595b5dfd94028d3a57a90a8e7c05400506857bc",
+      "bytes": 654561
     }
   ]
 }

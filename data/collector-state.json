@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "sequence": 12,
+  "snapshot_sha256": "c96ac4e4d091cd4cd08ff296706a3ee985c43b2914ce4f58e6493ae07fa343cc",
+  "file": "collector-state-6560fef89df531dcf0b941571d7f3114056e0ec105cb2c088d32f10518a5763f.json.gz",
+  "sha256": "6560fef89df531dcf0b941571d7f3114056e0ec105cb2c088d32f10518a5763f",
+  "bytes": 9471997
+}
