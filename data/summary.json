@@ -1,6 +1,6 @@
 {
-  "query_date": "2026-11-13",
-  "observed_date": "2026-11-13",
+  "query_date": "2026-11-14",
+  "observed_date": "2026-11-14",
   "test_mode": false,
   "replay": false,
   "stations": 3407,
@@ -9,15 +9,19 @@
     "renamed": [],
     "removed": []
   },
-  "enumerated_codes": 16475,
-  "enumerated_train_nos": 12747,
-  "details_ok": 12746,
-  "details_failed": 1,
-  "details_unavailable": 1,
+  "enumerated_codes": 16187,
+  "enumerated_train_nos": 12499,
+  "details_ok": 12494,
+  "details_failed": 5,
+  "details_unavailable": 5,
   "complete": false,
   "gps_stations": 3410,
   "gps_source": "bundled seed (not freshly fetched)",
   "failed_train_nos": [
-    "47000G553800"
+    "65000G307206",
+    "760000D23505",
+    "480000K16109",
+    "24000K52310Z",
+    "3b000G18120C"
   ]
 }
