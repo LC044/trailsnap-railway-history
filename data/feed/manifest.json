@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
   "station_dates_version": 1,
-  "sequence": 15,
-  "generated_at": "2026-11-15T03:09:01.887Z",
+  "sequence": 16,
+  "generated_at": "2026-11-16T03:23:26.466Z",
   "metadata": {
-    "query_date": "2026-11-15",
-    "observed_date": "2026-11-15",
+    "query_date": "2026-11-16",
+    "observed_date": "2026-11-16",
     "test_mode": false,
     "replay": false,
     "stations": 3407,
@@ -14,29 +14,27 @@
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 16555,
-    "enumerated_train_nos": 12815,
-    "details_ok": 12814,
-    "details_failed": 1,
-    "details_unavailable": 1,
-    "complete": false,
+    "enumerated_codes": 15861,
+    "enumerated_train_nos": 12213,
+    "details_ok": 12213,
+    "details_failed": 0,
+    "details_unavailable": 0,
+    "complete": true,
     "gps_stations": 3410,
     "gps_source": "bundled seed (not freshly fetched)",
-    "failed_train_nos": [
-      "78000K469300"
-    ]
+    "failed_train_nos": []
   },
   "coverage": {
     "stations": 3407,
-    "trains": 17570,
-    "trains_with_timetable": 17570
+    "trains": 17598,
+    "trains_with_timetable": 17598
   },
   "snapshot": {
-    "sequence": 15,
-    "file": "packs/a14b17c5e8b69f91346f9ed5adf22690adcf5b9005e8438351790f5a758e5c04.json.gz",
-    "sha256": "a14b17c5e8b69f91346f9ed5adf22690adcf5b9005e8438351790f5a758e5c04",
-    "bytes": 7517606,
-    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-a14b17c5e8b69f91346f9ed5adf22690adcf5b9005e8438351790f5a758e5c04/a14b17c5e8b69f91346f9ed5adf22690adcf5b9005e8438351790f5a758e5c04.json.gz"
+    "sequence": 16,
+    "file": "packs/0019735245cfc6b833392c3cf70d67923ee29faa4269a1a984791a63a526c21e.json.gz",
+    "sha256": "0019735245cfc6b833392c3cf70d67923ee29faa4269a1a984791a63a526c21e",
+    "bytes": 7535142,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-0019735245cfc6b833392c3cf70d67923ee29faa4269a1a984791a63a526c21e/0019735245cfc6b833392c3cf70d67923ee29faa4269a1a984791a63a526c21e.json.gz"
   },
   "deltas": [
     {
@@ -184,6 +182,12 @@
       "file": "packs/15c6297b30784ccad324602c15084fe5d3d2b761ca7821c508176deb66b16831.json.gz",
       "sha256": "15c6297b30784ccad324602c15084fe5d3d2b761ca7821c508176deb66b16831",
       "bytes": 279656
+    },
+    {
+      "sequence": 16,
+      "file": "packs/d4cefed7ebaea8add2dafecd0219ed1f2f215f9d74504bbcb89dc223b6abb629.json.gz",
+      "sha256": "d4cefed7ebaea8add2dafecd0219ed1f2f215f9d74504bbcb89dc223b6abb629",
+      "bytes": 246857
     }
   ]
 }
