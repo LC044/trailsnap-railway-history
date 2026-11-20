@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "sequence": 19,
-  "snapshot_sha256": "7ea167359d6c3886e1512372abbabfaf21826319f32b3edd6a98ee66cacc41ce",
-  "file": "collector-state-36d34f12bac537d9cd3ad603ccfa86a450e6c7098c70e5ea664091f2c2281d8d.json.gz",
-  "sha256": "36d34f12bac537d9cd3ad603ccfa86a450e6c7098c70e5ea664091f2c2281d8d",
-  "bytes": 9823723
+  "sequence": 20,
+  "snapshot_sha256": "0306df45ab7d2888fc369019bc0f180906a2c1935eaf5813a52c23953396f296",
+  "file": "collector-state-b41ae531a2098ab608f49499619d6861df39d5477ff83df2b03ec730f702731f.json.gz",
+  "sha256": "b41ae531a2098ab608f49499619d6861df39d5477ff83df2b03ec730f702731f",
+  "bytes": 9872820
 }
