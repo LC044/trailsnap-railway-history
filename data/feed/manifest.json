@@ -1,47 +1,42 @@
 {
   "schema_version": 2,
   "station_dates_version": 1,
-  "sequence": 21,
-  "generated_at": "2026-11-21T04:44:57.312Z",
+  "sequence": 22,
+  "generated_at": "2026-11-22T04:03:02.017Z",
   "metadata": {
-    "query_date": "2026-11-21",
-    "observed_date": "2026-11-21",
+    "query_date": "2026-11-22",
+    "observed_date": "2026-11-22",
     "test_mode": false,
     "replay": false,
     "stations": 3413,
     "station_changes": {
-      "added": [
-        "和村",
-        "临水",
-        "彭城",
-        "新坡",
-        "新市区",
-        "义井"
-      ],
+      "added": [],
       "renamed": [],
       "removed": []
     },
-    "enumerated_codes": 16201,
-    "enumerated_train_nos": 12521,
-    "details_ok": 12521,
-    "details_failed": 0,
-    "details_unavailable": 0,
-    "complete": true,
+    "enumerated_codes": 16559,
+    "enumerated_train_nos": 12827,
+    "details_ok": 12826,
+    "details_failed": 1,
+    "details_unavailable": 1,
+    "complete": false,
     "gps_stations": 3410,
     "gps_source": "bundled seed (not freshly fetched)",
-    "failed_train_nos": []
+    "failed_train_nos": [
+      "3b000G118804"
+    ]
   },
   "coverage": {
     "stations": 3413,
-    "trains": 17856,
-    "trains_with_timetable": 17856
+    "trains": 17896,
+    "trains_with_timetable": 17896
   },
   "snapshot": {
-    "sequence": 21,
-    "file": "packs/ced900f3fbd49421a05eeed59077fafacff204be512b15e85cadff8da3a699f8.json.gz",
-    "sha256": "ced900f3fbd49421a05eeed59077fafacff204be512b15e85cadff8da3a699f8",
-    "bytes": 7729103,
-    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-ced900f3fbd49421a05eeed59077fafacff204be512b15e85cadff8da3a699f8/ced900f3fbd49421a05eeed59077fafacff204be512b15e85cadff8da3a699f8.json.gz"
+    "sequence": 22,
+    "file": "packs/b53966f23f2355186a921d5f55654cce36a530f6dd1d2fc5d6dc6fa236fe7eeb.json.gz",
+    "sha256": "b53966f23f2355186a921d5f55654cce36a530f6dd1d2fc5d6dc6fa236fe7eeb",
+    "bytes": 7739299,
+    "url": "https://github.com/LC044/trailsnap-railway-history/releases/download/snapshot-v2-b53966f23f2355186a921d5f55654cce36a530f6dd1d2fc5d6dc6fa236fe7eeb/b53966f23f2355186a921d5f55654cce36a530f6dd1d2fc5d6dc6fa236fe7eeb.json.gz"
   },
   "deltas": [
     {
@@ -225,6 +220,12 @@
       "file": "packs/1875e010597ddef41e02f60b7a55555392e54e54d9f44423213198b2ff46f68a.json.gz",
       "sha256": "1875e010597ddef41e02f60b7a55555392e54e54d9f44423213198b2ff46f68a",
       "bytes": 741502
+    },
+    {
+      "sequence": 22,
+      "file": "packs/43665ca41a15f8aef742500b4bed7f451acea7a147fa5b2e397c9f83eca112d7.json.gz",
+      "sha256": "43665ca41a15f8aef742500b4bed7f451acea7a147fa5b2e397c9f83eca112d7",
+      "bytes": 253481
     }
   ]
 }
